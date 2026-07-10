@@ -109,7 +109,7 @@ export default function Home() {
             onClick={handleStart}
             className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:via-indigo-700 hover:to-purple-700 text-white font-bold rounded-2xl text-base shadow-[0_4px_30px_rgba(99,102,241,0.4)] transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer"
           >
-            포트폴리오 만들기
+            포트폴리오 생성하기
             <ArrowRight className="w-5 h-5" />
           </button>
           <p className="text-[10px] text-indigo-300/60 mt-3">
