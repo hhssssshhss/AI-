@@ -15,7 +15,9 @@ import {
   Undo,
   ExternalLink,
   CheckCircle2,
-  FileCheck
+  FileCheck,
+  Link2,
+  FileText
 } from "lucide-react";
 
 export default function PortfolioBuilderPage() {
@@ -34,6 +36,13 @@ export default function PortfolioBuilderPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // 채용공고 크롤링 및 맞춤형 텍스트 상태
+  const [jobUrl, setJobUrl] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [isCrawling, setIsCrawling] = useState(false);
+  const [crawlError, setCrawlError] = useState("");
+  const [crawlSuccess, setCrawlSuccess] = useState(false);
+
   // 로드 체크 및 인터뷰 완료 활동 필터링
   const completedActivities = activities.filter(
     (a) => a.status === "READY" && a.interview?.status === "COMPLETED"
@@ -41,6 +50,40 @@ export default function PortfolioBuilderPage() {
   const uncompletedActivities = activities.filter(
     (a) => a.status === "READY" && (!a.interview || a.interview.status !== "COMPLETED")
   );
+
+  const handleCrawlJobPosting = async () => {
+    if (!jobUrl) {
+      setCrawlError("채용공고 URL을 입력해 주세요.");
+      return;
+    }
+
+    setIsCrawling(true);
+    setCrawlError("");
+    setCrawlSuccess(false);
+
+    try {
+      const res = await fetch("/api/portfolio/crawl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: jobUrl })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "채용공고 분석에 실패했습니다.");
+      }
+
+      setJobDescription(data.text);
+      setCrawlSuccess(true);
+    } catch (err) {
+      console.error(err);
+      const errMsg = err instanceof Error ? err.message : "채용공고를 가져오지 못했습니다. 본문을 직접 복사해서 아래 입력해 주세요.";
+      setCrawlError(errMsg);
+    } finally {
+      setIsCrawling(false);
+    }
+  };
 
   const handleGeneratePortfolio = async () => {
     if (completedActivities.length === 0) {
@@ -57,7 +100,8 @@ export default function PortfolioBuilderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           activities: completedActivities,
-          targetJob
+          targetJob,
+          jobPostingText: jobDescription
         })
       });
 
@@ -162,6 +206,74 @@ export default function PortfolioBuilderPage() {
                   <option value="planning">서비스 기획자 (Product Manager)</option>
                   <option value="design">디자이너 (UX/UI Designer)</option>
                 </select>
+              </div>
+
+              {/* 채용공고 연동 섹션 */}
+              <div className="border border-white/5 bg-slate-950/40 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-white flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-indigo-400" />
+                    채용공고 맞춤 최적화 <span className="text-[10px] bg-white/5 text-slate-400 px-1.5 py-0.5 rounded-md font-normal">선택</span>
+                  </h4>
+                </div>
+                <p className="text-xs text-slate-400">
+                  지원하려는 채용공고의 URL을 입력하면, AI가 요구역량을 분석하여 최적화된 포트폴리오를 작성합니다.
+                </p>
+
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <input
+                        type="url"
+                        placeholder="채용공고 URL 입력 (예: 사람인, 원티드 등)"
+                        value={jobUrl}
+                        onChange={(e) => setJobUrl(e.target.value)}
+                        className="w-full bg-slate-900 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCrawlJobPosting}
+                      disabled={isCrawling || !jobUrl}
+                      className="px-4 py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 disabled:bg-slate-900 border border-indigo-500/20 disabled:border-white/5 text-indigo-300 disabled:text-slate-600 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shrink-0"
+                    >
+                      {isCrawling ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        "공고 분석"
+                      )}
+                    </button>
+                  </div>
+
+                  {/* 크롤링 오류 및 성공 알림 */}
+                  {crawlError && (
+                    <p className="text-[10px] text-rose-400 flex items-center gap-1 leading-normal">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      {crawlError}
+                    </p>
+                  )}
+                  {crawlSuccess && (
+                    <p className="text-[10px] text-emerald-400 flex items-center gap-1 leading-normal">
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                      공고 파싱 완료! 포트폴리오 생성 시 해당 요구사항에 최적화됩니다.
+                    </p>
+                  )}
+
+                  {/* 본문 직접 기입/편집 영역 */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                      채용공고 상세 요건 (직접 입력 및 수정 가능)
+                    </label>
+                    <textarea
+                      rows={4}
+                      placeholder="채용공고 내용을 직접 입력하거나 복사해 붙여넣으세요. 가져온 내용의 확인 및 수정이 가능합니다."
+                      value={jobDescription}
+                      onChange={(e) => setJobDescription(e.target.value)}
+                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500 resize-none leading-relaxed"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="p-4 bg-white/5 border border-white/5 rounded-xl text-xs space-y-2">

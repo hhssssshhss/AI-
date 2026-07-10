@@ -36,7 +36,7 @@ const JOB_STYLE_GUIDES: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const { activities, targetJob } = await req.json();
+    const { activities, targetJob, jobPostingText } = await req.json();
 
     if (!activities?.length || !targetJob) {
       return NextResponse.json(
@@ -73,11 +73,21 @@ ${
       )
       .join("\n\n---\n");
 
+    const jobPostingPrompt = jobPostingText
+      ? `\n[매우 중요] 지원하려는 아래 채용공고의 필수 역량, 우대 사항, 키워드를 최대로 반영하여 작성하세요:
+채용공고 내용:
+"""
+${jobPostingText}
+"""
+포트폴리오의 각 섹션(특히 자기소개와 활동 요약)이 이 채용공고의 요구역량과 직결되도록 커스터마이징하고, 관련 핵심 키워드를 적극적으로 활용해 인재상과의 매칭도를 매력적으로 강조해 주세요.`
+      : "";
+
     const prompt = `당신은 커리어 포트폴리오 작성을 돕는 AI입니다.
 지원 직무: ${targetJob}
 ${styleGuide}
+${jobPostingPrompt}
 
-아래 활동 자료와 인터뷰 답변만을 근거로 (추측이나 지어내기 금지) 포트폴리오 초안을 JSON 블록 배열로 작성하세요.
+아래 제공된 활동 자료와 인터뷰 답변만을 근거로 (추측이나 지어내기 금지) 포트폴리오 초안을 JSON 블록 배열로 작성하세요.
 블록 타입: title(포트폴리오 제목), intro(자기소개), activity(활동 섹션), summary(핵심 성과 요약)
 
 활동 자료:
