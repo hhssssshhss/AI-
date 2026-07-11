@@ -8,7 +8,6 @@ import {
   FolderGit, 
   BookOpen, 
   TrendingUp, 
-  Settings, 
   LogOut, 
   Sparkles,
   Menu,

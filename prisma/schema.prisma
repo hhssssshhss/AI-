@@ -1,0 +1,110 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                String      @id @default(cuid())
+  name              String
+  birthYear         Int
+  consentToDb       Boolean     @default(false)
+  googleDriveLinked Boolean     @default(false)
+  googleRefreshToken String?    @db.Text
+  activities        Activity[]
+  portfolios        Portfolio[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model Activity {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  periodStart DateTime?
+  periodEnd   DateTime?
+  summary     String?        @db.Text
+  role        String?        @db.Text
+  keywords    String[]
+  status      ActivityStatus @default(PROCESSING)
+  files       ActivityFile[]
+  interview   Interview?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+enum ActivityStatus {
+  PROCESSING
+  READY
+  NEEDS_MANUAL_INPUT
+  FAILED
+}
+
+model ActivityFile {
+  id                String   @id @default(cuid())
+  activityId        String
+  activity          Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  googleDriveFileId String?
+  fileName          String
+  mimeType          String
+  sizeBytes         Int
+  extractedText     String?  @db.Text
+  parseStatus       String   @default("PENDING")
+  createdAt         DateTime @default(now())
+}
+
+model Interview {
+  id         String          @id @default(cuid())
+  activityId String          @unique
+  activity   Activity        @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  status     InterviewStatus @default(NOT_STARTED)
+  qaItems    QaItem[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+enum InterviewStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model QaItem {
+  id          String    @id @default(cuid())
+  interviewId String
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  category    String
+  question    String    @db.Text
+  answer      String?   @db.Text
+  keyInsight  String?   @db.Text
+  order       Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Portfolio {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetJob String
+  content   Json
+  version   Int              @default(1)
+  shareSlug String?          @unique
+  analyses  AnalysisReport[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model AnalysisReport {
+  id          String    @id @default(cuid())
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  patterns    Json
+  gaps        Json
+  suggestions Json
+  createdAt   DateTime  @default(now())
+}

@@ -8,7 +8,7 @@ import { loginOrRegister } from "@/app/actions/auth";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, setBirthYear } = useAuthStore();
+  const { login } = useAuthStore();
   const [name, setName] = useState("");
   const [year, setYear] = useState("");
   const [error, setError] = useState("");
@@ -36,8 +36,8 @@ export default function LoginPage() {
       const user = await loginOrRegister(name, yearNum);
       login(user);
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "로그인 처리 중 오류가 발생했습니다.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "로그인 처리 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }

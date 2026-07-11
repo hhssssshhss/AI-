@@ -72,40 +72,57 @@ export interface AnalysisReport {
   suggestions: string[];
 }
 
+import { persist } from "zustand/middleware";
+
 // ──────────────────────────────────────────────────────
-// Auth state (목업 로그인)
+// Auth state (DB 연동 기반 세션 관리)
 // ──────────────────────────────────────────────────────
 
 interface AuthState {
   isLoggedIn: boolean;
+  userId: string | null;
   userName: string;
   birthYear: number | null;
   driveLinked: boolean;
   driveAccessToken: string | null;
-  login: (name: string) => void;
+  login: (user: { id: string; name: string; birthYear: number; driveLinked: boolean }) => void;
   logout: () => void;
-  setDriveLinked: (token: string) => void;
-  setBirthYear: (year: number) => void;
+  setDriveLinked: (linked: boolean, token?: string) => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  isLoggedIn: false,
-  userName: "",
-  birthYear: null,
-  driveLinked: false,
-  driveAccessToken: null,
-  login: (name) => set({ isLoggedIn: true, userName: name }),
-  logout: () =>
-    set({
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
       isLoggedIn: false,
+      userId: null,
       userName: "",
+      birthYear: null,
       driveLinked: false,
       driveAccessToken: null,
+      login: (user) => set({ 
+        isLoggedIn: true, 
+        userId: user.id, 
+        userName: user.name, 
+        birthYear: user.birthYear, 
+        driveLinked: user.driveLinked 
+      }),
+      logout: () =>
+        set({
+          isLoggedIn: false,
+          userId: null,
+          userName: "",
+          birthYear: null,
+          driveLinked: false,
+          driveAccessToken: null,
+        }),
+      setDriveLinked: (linked, token) =>
+        set({ driveLinked: linked, driveAccessToken: token || null }),
     }),
-  setDriveLinked: (token) =>
-    set({ driveLinked: true, driveAccessToken: token }),
-  setBirthYear: (year) => set({ birthYear: year }),
-}));
+    {
+      name: 'auth-storage',
+    }
+  )
+);
 
 // ──────────────────────────────────────────────────────
 // Activities store
@@ -117,6 +134,7 @@ interface ActivitiesState {
   updateActivity: (id: string, updates: Partial<Activity>) => void;
   removeActivity: (id: string) => void;
   getActivity: (id: string) => Activity | undefined;
+  setActivities: (activities: Activity[]) => void;
 }
 
 export const useActivitiesStore = create<ActivitiesState>((set, get) => ({
@@ -134,6 +152,7 @@ export const useActivitiesStore = create<ActivitiesState>((set, get) => ({
       activities: state.activities.filter((a) => a.id !== id),
     })),
   getActivity: (id) => get().activities.find((a) => a.id === id),
+  setActivities: (activities) => set({ activities }),
 }));
 
 // ──────────────────────────────────────────────────────

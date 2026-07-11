@@ -11,12 +11,13 @@ if (!clientId || !clientSecret || !redirectUri) {
 /**
  * 사용자에게 구글 드라이브 파일 접근 동의를 구하기 위한 OAuth 인증 URL을 생성합니다.
  */
-export const getGoogleOAuthUrl = () => {
+export const getGoogleOAuthUrl = (userId: string) => {
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
     scope: ["https://www.googleapis.com/auth/drive.file"],
     prompt: "consent",
+    state: userId,
   });
 };
 

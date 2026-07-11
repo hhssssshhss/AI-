@@ -7,12 +7,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { 
   Send, 
   HelpCircle, 
-  ChevronRight, 
-  ArrowLeft, 
-  MessageSquare,
-  Award,
   BookOpen,
-  AlertCircle,
   CheckCircle2,
   RefreshCw,
   TrendingUp
@@ -36,7 +31,7 @@ export default function InterviewPage() {
   const [currentCategory, setCurrentCategory] = useState<"PROBLEM" | "RESULT" | "LESSON">("PROBLEM");
   const [questionCount, setQuestionCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -82,7 +77,6 @@ export default function InterviewPage() {
   ) => {
     setIsAiTyping(true);
     setStreamedText("");
-    setErrorMsg("");
 
     try {
       const response = await fetch("/api/interview/stream", {
@@ -142,7 +136,7 @@ export default function InterviewPage() {
 
     } catch (err) {
       console.error(err);
-      setErrorMsg("AI 연결 오류가 발생했습니다. 다시 시도해 주세요.");
+      alert("AI 연결 오류가 발생했습니다. 다시 시도해 주세요.");
     } finally {
       setIsAiTyping(false);
     }
@@ -194,10 +188,6 @@ export default function InterviewPage() {
     await fetchAiQuestion(userText, history, nextCategory);
   };
 
-  const handleHelpSuggestion = async () => {
-    if (isAiTyping) return;
-    setInputValue("어떻게 답변해야 할지 모르겠어요. 힌트나 예시를 주실 수 있나요?");
-  };
 
   const finishInterview = (lastAnswer: string) => {
     setIsFinished(true);

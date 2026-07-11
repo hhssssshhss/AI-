@@ -10,12 +10,8 @@ import {
   UploadCloud, 
   FileText, 
   Calendar, 
-  ArrowRight, 
   Loader2, 
   AlertTriangle,
-  RefreshCw,
-  Sparkles,
-  CheckCircle2,
   Trash2
 } from "lucide-react";
 import { fetchUserActivities, createActivity, deleteActivityAction } from "@/app/actions/activities";
@@ -58,13 +54,14 @@ function ActivitiesContent() {
   // DB에서 유저 활동 불러오기
   useEffect(() => {
     if (userId) {
-      fetchUserActivities(userId).then((data: any) => {
-        // 날짜 직렬화 변환 등 필요한 매핑
-        const mapped = data.map((d: any) => ({
+      fetchUserActivities(userId).then((data) => {
+        const mapped = data.map((d) => ({
           ...d,
+          summary: d.summary ?? undefined,
+          role: d.role ?? undefined,
           periodStart: d.periodStart ? new Date(d.periodStart).toISOString().split('T')[0] : undefined,
           periodEnd: d.periodEnd ? new Date(d.periodEnd).toISOString().split('T')[0] : undefined,
-        }));
+        })) as unknown as Activity[];
         setActivities(mapped);
       }).catch(console.error);
     }
@@ -107,6 +104,7 @@ function ActivitiesContent() {
       await deleteActivityAction(id);
       removeActivity(id);
     } catch (err) {
+      console.error(err);
       alert("삭제 중 오류가 발생했습니다.");
     }
   };
@@ -247,9 +245,11 @@ function ActivitiesContent() {
         removeActivity(tempId);
         addActivity({
           ...dbActivity,
+          summary: dbActivity.summary ?? undefined,
+          role: dbActivity.role ?? undefined,
           periodStart: dbActivity.periodStart ? new Date(dbActivity.periodStart).toISOString().split('T')[0] : undefined,
           periodEnd: dbActivity.periodEnd ? new Date(dbActivity.periodEnd).toISOString().split('T')[0] : undefined,
-        });
+        } as unknown as Activity);
       }
 
     } catch (err) {
