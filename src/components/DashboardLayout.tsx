@@ -15,19 +15,17 @@ import {
   HardDrive
 } from "lucide-react";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { isLoggedIn, userName, logout, driveLinked } = useAuthStore();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+import { Suspense } from "react";
+
+function AuthSync() {
   const searchParams = useSearchParams();
+  const { isLoggedIn } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Handle Google Login Callback
   useEffect(() => {
     if (!mounted) return;
     const loggedInId = searchParams?.get("loggedInUserId");
@@ -36,7 +34,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         getUserById(loggedInId).then(user => {
           if (user) {
             useAuthStore.getState().login(user);
-            // Optional: clean up URL
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
           }
@@ -44,6 +41,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       });
     }
   }, [mounted, searchParams, isLoggedIn]);
+
+  return null;
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isLoggedIn, userName, logout, driveLinked } = useAuthStore();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (mounted && !isLoggedIn) {
@@ -70,6 +81,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans">
+      <Suspense fallback={null}>
+        <AuthSync />
+      </Suspense>
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-slate-100/50 border-r border-slate-200 p-6 z-10 shrink-0">
         {/* Brand */}
