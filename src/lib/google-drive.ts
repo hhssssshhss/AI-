@@ -31,12 +31,16 @@ export async function getTokens(code: string) {
   return tokens;
 }
 
-export const getGoogleOAuthUrl = (userId: string) => {
+export const getGoogleOAuthUrl = (userId?: string) => {
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
-    scope: ["https://www.googleapis.com/auth/drive.file"],
+    scope: [
+      "https://www.googleapis.com/auth/drive.file",
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile"
+    ],
     prompt: "consent",
-    state: userId,
+    state: userId || "login",
   });
 };
 

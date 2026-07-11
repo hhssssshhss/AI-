@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store";
 import Link from "next/link";
 import { 
@@ -21,10 +21,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { isLoggedIn, userName, logout, driveLinked } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Handle Google Login Callback
+  useEffect(() => {
+    if (!mounted) return;
+    const loggedInId = searchParams?.get("loggedInUserId");
+    if (loggedInId && !isLoggedIn) {
+      import("@/app/actions/auth").then(({ getUserById }) => {
+        getUserById(loggedInId).then(user => {
+          if (user) {
+            useAuthStore.getState().login(user);
+            // Optional: clean up URL
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+          }
+        });
+      });
+    }
+  }, [mounted, searchParams, isLoggedIn]);
 
   useEffect(() => {
     if (mounted && !isLoggedIn) {

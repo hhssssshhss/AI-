@@ -32,3 +32,14 @@ export async function loginOrRegister(name: string, birthYear: number) {
     driveLinked: user.googleDriveLinked,
   };
 }
+
+export async function getUserById(id: string) {
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) return null;
+  return {
+    id: user.id,
+    name: user.name,
+    birthYear: user.birthYear || 2000,
+    driveLinked: user.googleDriveLinked,
+  };
+}
