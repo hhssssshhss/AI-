@@ -10,7 +10,9 @@ import {
   BookOpen,
   CheckCircle2,
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  Mic,
+  MicOff
 } from "lucide-react";
 
 export default function InterviewPage() {
@@ -28,12 +30,73 @@ export default function InterviewPage() {
   const [streamedText, setStreamedText] = useState("");
 
   // 인터뷰 진행 상태
-  const [currentCategory, setCurrentCategory] = useState<"PROBLEM" | "RESULT" | "LESSON">("PROBLEM");
+  const [currentCategory, setCurrentCategory] = useState<"PROBLEM" | "RESULT" | "DEEP_DIVE" | "LESSON">("PROBLEM");
   const [questionCount, setQuestionCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
 
+  // 음성 인식 관련
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // 음성 인식 초기화
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = "ko-KR";
+        
+        recognition.onresult = (event: any) => {
+          let finalTranscript = "";
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            }
+          }
+          if (finalTranscript) {
+            setInputValue((prev) => prev + (prev ? " " : "") + finalTranscript);
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error("Speech recognition error", event.error);
+          setIsRecording(false);
+        };
+        
+        recognition.onend = () => {
+          setIsRecording(false);
+        };
+
+        recognitionRef.current = recognition;
+      }
+    }
+  }, []);
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+    } else {
+      if (!inputValue) setInputValue("");
+      recognitionRef.current?.start();
+      setIsRecording(true);
+    }
+  };
+
+  const speakText = (text: string) => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "ko-KR";
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
 
   // 인터뷰 시작 시 초기 세팅
   useEffect(() => {
@@ -73,7 +136,7 @@ export default function InterviewPage() {
   const fetchAiQuestion = async (
     userAns: string,
     history: { role: "user" | "model"; parts: { text: string }[] }[],
-    category: "PROBLEM" | "RESULT" | "LESSON"
+    category: "PROBLEM" | "RESULT" | "DEEP_DIVE" | "LESSON"
   ) => {
     setIsAiTyping(true);
     setStreamedText("");
@@ -131,6 +194,7 @@ export default function InterviewPage() {
 
       // 최종 받아온 질문 추가
       setMessages(prev => [...prev, { sender: "ai", text: accumulatedText }]);
+      speakText(accumulatedText);
       setStreamedText("");
       setQuestionCount(prev => prev + 1);
 
@@ -166,10 +230,11 @@ export default function InterviewPage() {
       });
     });
 
-    // 카테고리 전환 설계 (2문항마다 카테고리 변경)
+    // 카테고리 전환 설계 (2문항마다 카테고리 변경 + DEEP_DIVE)
     // 0~1 문항: PROBLEM -> 2문항 완료 시 RESULT 전환
-    // 2~3 문항: RESULT -> 4문항 완료 시 LESSON 전환
-    // 4~5 문항: LESSON -> 6문항 완료 시 인터뷰 완수
+    // 2~3 문항: RESULT -> 4문항 완료 시 DEEP_DIVE 전환 (압박 꼬리질문)
+    // 4문항: DEEP_DIVE -> 5문항 완료 시 LESSON 전환
+    // 5문항: LESSON -> 6문항 완료 시 인터뷰 완수
     let nextCategory = currentCategory;
     const nextQuestionCount = questionCount;
 
@@ -177,6 +242,9 @@ export default function InterviewPage() {
       nextCategory = "RESULT";
       setCurrentCategory("RESULT");
     } else if (nextQuestionCount === 4 && currentCategory === "RESULT") {
+      nextCategory = "DEEP_DIVE";
+      setCurrentCategory("DEEP_DIVE");
+    } else if (nextQuestionCount === 5 && currentCategory === "DEEP_DIVE") {
       nextCategory = "LESSON";
       setCurrentCategory("LESSON");
     } else if (nextQuestionCount >= 6) {
@@ -207,7 +275,7 @@ export default function InterviewPage() {
           id: `qa_${id}_${order}`,
           question: msg.text,
           order: order,
-          category: order <= 2 ? "PROBLEM" : order <= 4 ? "RESULT" : "LESSON"
+          category: order <= 2 ? "PROBLEM" : order <= 4 ? "RESULT" : order === 5 ? "DEEP_DIVE" : "LESSON"
         };
       } else if (msg.sender === "user" && currentQa.question) {
         currentQa.answer = msg.text;
@@ -337,27 +405,39 @@ export default function InterviewPage() {
 
             {/* Chat Input */}
             <div className="p-4 bg-white border-t border-slate-200">
-              <form onSubmit={handleSendMessage} className="relative">
-                <button type="button" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
-                </button>
-                <input
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  disabled={isAiTyping || isFinished}
-                  placeholder="답변을 입력하거나 마이크를 사용하세요..."
-                  className="w-full bg-white border border-slate-300 rounded-xl pl-11 pr-14 py-3.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
-                />
-                <button
-                  type="submit"
-                  disabled={isAiTyping || isFinished || !inputValue.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#0055d4] hover:bg-blue-700 disabled:bg-slate-300 rounded-lg flex items-center justify-center text-white transition-colors"
+              <form onSubmit={handleSendMessage} className="relative flex gap-2">
+                <button 
+                  type="button" 
+                  onClick={toggleRecording}
+                  className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-colors shadow-sm border ${
+                    isRecording 
+                      ? "bg-red-50 text-red-500 border-red-200 animate-pulse" 
+                      : "bg-slate-50 text-slate-500 hover:text-blue-500 hover:bg-blue-50 hover:border-blue-200 border-slate-200"
+                  }`}
+                  title="음성 인식 토글"
                 >
-                  <Send className="w-4 h-4" />
+                  {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                 </button>
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    disabled={isAiTyping || isFinished}
+                    placeholder="답변을 입력하거나 마이크를 사용하여 말씀하세요..."
+                    className="w-full h-12 bg-white border border-slate-300 rounded-xl px-4 pr-14 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isAiTyping || isFinished || (!inputValue.trim() && !isRecording)}
+                    className="absolute right-1 top-1 w-10 h-10 bg-[#0055d4] hover:bg-blue-700 disabled:bg-slate-300 rounded-lg flex items-center justify-center text-white transition-colors"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
               </form>
             </div>
+
             
             {/* Finished Overlay */}
             {isFinished && (

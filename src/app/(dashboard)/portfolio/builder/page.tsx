@@ -43,6 +43,10 @@ export default function PortfolioBuilderPage() {
   const [crawlError, setCrawlError] = useState("");
   const [crawlSuccess, setCrawlSuccess] = useState(false);
 
+  // ATS Fit 분석 상태
+  const [atsResult, setAtsResult] = useState<{score: number; missingKeywords: string[]; feedback: string[]} | null>(null);
+  const [isAtsAnalyzing, setIsAtsAnalyzing] = useState(false);
+
   // 로드 체크 및 인터뷰 완료 활동 필터링
   const completedActivities = activities.filter(
     (a) => a.status === "READY" && a.interview?.status === "COMPLETED"
@@ -135,6 +139,37 @@ export default function PortfolioBuilderPage() {
 
   const handleRestoreVersion = (idx: number) => {
     restoreSnapshot(idx);
+  };
+
+  const handleAtsAnalysis = async () => {
+    if (!portfolio) return;
+    if (!jobDescription) {
+      setErrorMsg("채용공고(JD) 공고 분석이 먼저 필요합니다. 포트폴리오를 재생성할 필요는 없지만 우측 빠른 설정에서 채용공고 URL을 먼저 분석해 주세요.");
+      return;
+    }
+
+    setIsAtsAnalyzing(true);
+    setErrorMsg("");
+
+    try {
+      const res = await fetch("/api/portfolio/ats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          portfolioBlocks: portfolio.blocks,
+          jobPostingText: jobDescription
+        })
+      });
+
+      if (!res.ok) throw new Error("ATS 분석에 실패했습니다.");
+      const data = await res.json();
+      setAtsResult(data);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("ATS 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setIsAtsAnalyzing(false);
+    }
   };
 
   return (
@@ -370,6 +405,17 @@ export default function PortfolioBuilderPage() {
                   초안 작성을 완료하셨다면 다음 또래 비교 탭에서 완성도 갭 리포트를 분석해 보세요.
                 </p>
                 <button
+                  onClick={handleAtsAnalysis}
+                  disabled={isAtsAnalyzing}
+                  className="w-full py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition-colors border border-indigo-200 flex items-center justify-center gap-1.5"
+                >
+                  {isAtsAnalyzing ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> 분석 중...</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4" /> 내 이력서 ATS 점수 보기</>
+                  )}
+                </button>
+                <button
                   onClick={() => router.push("/portfolio/analysis")}
                   className="w-full py-2.5 px-3 bg-[#0055d4] hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5"
                 >
@@ -377,6 +423,45 @@ export default function PortfolioBuilderPage() {
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
+
+              {atsResult && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 animate-in fade-in slide-in-from-top-2">
+                  <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
+                    <FileText className="w-4.5 h-4.5 text-indigo-600" />
+                    ATS 매칭 분석 결과
+                  </h3>
+                  <div className="flex items-end gap-2 mb-2">
+                    <span className="text-3xl font-extrabold text-indigo-600">{atsResult.score}</span>
+                    <span className="text-xs font-semibold text-slate-500 mb-1">/ 100점</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${atsResult.score}%` }}></div>
+                  </div>
+                  
+                  {atsResult.missingKeywords.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase mb-2">누락된 핵심 키워드</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {atsResult.missingKeywords.map((kw, i) => (
+                          <span key={i} className="px-2 py-1 bg-rose-50 text-rose-600 border border-rose-200 rounded text-[10px] font-semibold">{kw}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-2">AI 개선 피드백</p>
+                    <ul className="space-y-2">
+                      {atsResult.feedback.map((fb, i) => (
+                        <li key={i} className="flex gap-2 items-start text-xs text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                          <div className="w-4 h-4 rounded-full bg-indigo-100 text-indigo-600 shrink-0 flex items-center justify-center font-bold text-[8px] mt-0.5">{i+1}</div>
+                          <span className="leading-relaxed">{fb}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={() => {
