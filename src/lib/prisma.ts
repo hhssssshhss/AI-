@@ -1,6 +1,9 @@
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { PrismaNeon } from '@prisma/adapter-neon';
 import { PrismaClient } from '@prisma/client';
+import ws from 'ws';
+
+neonConfig.webSocketConstructor = ws;
 
 const prismaClientSingleton = () => {
   const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
@@ -9,7 +12,7 @@ const prismaClientSingleton = () => {
   }
 
   const pool = new Pool({ connectionString: connectionString || "postgres://dummy:dummy@localhost/dummy" });
-  const adapter = new PrismaPg(pool);
+  const adapter = new PrismaNeon(pool);
   
   return new PrismaClient({ adapter });
 };
