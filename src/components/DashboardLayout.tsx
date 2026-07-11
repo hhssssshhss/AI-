@@ -20,6 +20,7 @@ import { Suspense } from "react";
 function AuthSync() {
   const searchParams = useSearchParams();
   const { isLoggedIn } = useAuthStore();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -36,11 +37,15 @@ function AuthSync() {
             useAuthStore.getState().login(user);
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
+          } else {
+            router.replace("/login");
           }
         });
       });
+    } else if (!isLoggedIn && !loggedInId) {
+      router.replace("/login");
     }
-  }, [mounted, searchParams, isLoggedIn]);
+  }, [mounted, searchParams, isLoggedIn, router]);
 
   return null;
 }
@@ -56,13 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (mounted && !isLoggedIn) {
-      router.replace("/login");
-    }
-  }, [mounted, isLoggedIn, router]);
-
-  if (!mounted || !isLoggedIn) {
+  if (!mounted || (!isLoggedIn && !window.location.search.includes("loggedInUserId"))) {
     return (
       <div className="min-h-screen bg-[#020005] flex items-center justify-center">
         <div className="relative flex items-center justify-center">
