@@ -4,15 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store";
 import { KeyRound, User, Calendar, Sparkles } from "lucide-react";
+import { loginOrRegister } from "@/app/actions/auth";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, setBirthYear } = useAuthStore();
+  const { login } = useAuthStore();
   const [name, setName] = useState("");
   const [year, setYear] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       setError("이름을 입력해주세요.");
@@ -29,9 +31,16 @@ export default function LoginPage() {
       return;
     }
 
-    login(name);
-    setBirthYear(yearNum);
-    router.push("/activities");
+    try {
+      setLoading(true);
+      const user = await loginOrRegister(name, yearNum);
+      login(user);
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "로그인 처리 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -118,9 +127,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold rounded-xl transition-all shadow-[0_4px_20px_rgba(99,102,241,0.3)] hover:shadow-[0_4px_25px_rgba(99,102,241,0.5)] active:scale-[0.98] text-sm"
+              disabled={loading}
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold rounded-xl transition-all shadow-[0_4px_20px_rgba(99,102,241,0.3)] hover:shadow-[0_4px_25px_rgba(99,102,241,0.5)] active:scale-[0.98] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              로그인 후 시작하기
+              {loading ? "처리 중..." : "로그인 후 시작하기"}
             </button>
           </form>
         </div>

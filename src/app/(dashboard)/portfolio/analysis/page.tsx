@@ -19,7 +19,7 @@ import {
 
 export default function AnalysisPage() {
   const router = useRouter();
-  const { birthYear, setBirthYear } = useAuthStore();
+  const { birthYear } = useAuthStore();
   const { portfolio, analysisReport, setAnalysisReport } = usePortfolioStore();
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -84,7 +84,6 @@ export default function AnalysisPage() {
       setErrorMsg("올바른 연도를 입력해 주세요.");
       return;
     }
-    setBirthYear(yearNum);
     handleRunAnalysis(2026 - yearNum);
   };
 

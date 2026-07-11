@@ -7,14 +7,10 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { 
   Send, 
   HelpCircle, 
-  ChevronRight, 
-  ArrowLeft, 
-  MessageSquare,
-  Award,
   BookOpen,
-  AlertCircle,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  TrendingUp
 } from "lucide-react";
 
 export default function InterviewPage() {
@@ -35,7 +31,7 @@ export default function InterviewPage() {
   const [currentCategory, setCurrentCategory] = useState<"PROBLEM" | "RESULT" | "LESSON">("PROBLEM");
   const [questionCount, setQuestionCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -81,7 +77,6 @@ export default function InterviewPage() {
   ) => {
     setIsAiTyping(true);
     setStreamedText("");
-    setErrorMsg("");
 
     try {
       const response = await fetch("/api/interview/stream", {
@@ -141,7 +136,7 @@ export default function InterviewPage() {
 
     } catch (err) {
       console.error(err);
-      setErrorMsg("AI 연결 오류가 발생했습니다. 다시 시도해 주세요.");
+      alert("AI 연결 오류가 발생했습니다. 다시 시도해 주세요.");
     } finally {
       setIsAiTyping(false);
     }
@@ -193,10 +188,6 @@ export default function InterviewPage() {
     await fetchAiQuestion(userText, history, nextCategory);
   };
 
-  const handleHelpSuggestion = async () => {
-    if (isAiTyping) return;
-    setInputValue("어떻게 답변해야 할지 모르겠어요. 힌트나 예시를 주실 수 있나요?");
-  };
 
   const finishInterview = (lastAnswer: string) => {
     setIsFinished(true);
@@ -254,163 +245,202 @@ export default function InterviewPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl mx-auto flex flex-col h-[calc(100vh-140px)]">
-        {/* Top bar */}
-        <div className="flex items-center justify-between pb-4 border-b border-white/5">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/activities")}
-              className="p-2 hover:bg-white/5 rounded-xl transition-all text-slate-400 hover:text-white"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                {activity.title}
-                <span className="text-xs bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">
-                  AI 코칭 인터뷰
-                </span>
-              </h1>
-              <p className="text-xs text-slate-400 mt-0.5">역할: {activity.role || "무작위"}</p>
+      <div className="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto h-[calc(100vh-100px)]">
+        
+        {/* Main Chat Column */}
+        <div className="flex-1 flex flex-col min-w-0">
+          
+          {/* Top Info Cards */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 flex justify-between items-center shadow-sm">
+              <div>
+                <p className="text-xs text-slate-500 font-medium mb-1">면접 유형</p>
+                <h3 className="font-bold text-slate-800 text-base">활동 인사이트 추출</h3>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                <BookOpen className="w-5 h-5 text-blue-500" />
+              </div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-xl p-4 flex justify-between items-center shadow-sm">
+              <div>
+                <p className="text-xs text-slate-500 font-medium mb-1">진행 시간</p>
+                <h3 className="font-bold text-slate-800 text-base">15:00 / 30:00</h3>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                <RefreshCw className="w-5 h-5 text-blue-500" />
+              </div>
             </div>
           </div>
 
-          {!isFinished && (
-            <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
-              <span className={`flex items-center gap-1.5 ${currentCategory === 'PROBLEM' ? 'text-indigo-400' : ''}`}>
-                <MessageSquare className="w-3.5 h-3.5" />
-                문제극복
-              </span>
-              <ChevronRight className="w-3 h-3 text-slate-600" />
-              <span className={`flex items-center gap-1.5 ${currentCategory === 'RESULT' ? 'text-indigo-400' : ''}`}>
-                <Award className="w-3.5 h-3.5" />
-                성과도출
-              </span>
-              <ChevronRight className="w-3 h-3 text-slate-600" />
-              <span className={`flex items-center gap-1.5 ${currentCategory === 'LESSON' ? 'text-indigo-400' : ''}`}>
-                <BookOpen className="w-3.5 h-3.5" />
-                배운점
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Chat window */}
-        <div className="flex-1 bg-slate-900/40 border border-white/5 rounded-2xl p-6 overflow-y-auto space-y-4 min-h-0 custom-scrollbar">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"} animate-fade-in`}
-            >
-              <div
-                className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                  msg.sender === "user"
-                    ? "bg-indigo-600 text-white rounded-tr-none shadow-[0_4px_15px_rgba(99,102,241,0.2)]"
-                    : "bg-white/5 border border-white/10 text-slate-100 rounded-tl-none"
-                }`}
+          {/* Chat Window */}
+          <div className="flex-1 bg-white border border-slate-200 rounded-2xl flex flex-col shadow-sm overflow-hidden relative">
+            
+            {/* Chat Header */}
+            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-white z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#0055d4] flex items-center justify-center text-white font-bold shrink-0">
+                  AI
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base">Career AI</h3>
+                  <p className="text-xs text-slate-500">활동 인사이트 추출</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => finishInterview("인터뷰 강제 종료")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-red-200 text-red-500 text-xs font-semibold hover:bg-red-50 transition-colors"
               >
-                {msg.text}
-              </div>
-            </div>
-          ))}
-
-          {/* SSE Streamed Message */}
-          {streamedText && (
-            <div className="flex justify-start">
-              <div className="max-w-[75%] rounded-2xl px-4 py-3 text-sm bg-white/5 border border-white/10 text-slate-100 rounded-tl-none leading-relaxed">
-                {streamedText}
-                <span className="inline-block w-1.5 h-4 ml-1 bg-indigo-400 animate-pulse"></span>
-              </div>
-            </div>
-          )}
-
-          {/* AI Typing Indicator */}
-          {isAiTyping && !streamedText && (
-            <div className="flex justify-start items-center gap-2 text-slate-400 text-xs">
-              <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
-              AI 코치가 질문을 작성하고 있습니다...
-            </div>
-          )}
-
-          {/* Error Indicator */}
-          {errorMsg && (
-            <div className="flex justify-center p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          {/* Finish UI Screen */}
-          {isFinished && (
-            <div className="py-10 text-center max-w-md mx-auto space-y-6 animate-in fade-in zoom-in-95 duration-300">
-              <div className="inline-flex p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full">
-                <CheckCircle2 className="w-10 h-10" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">활동 인터뷰가 완료되었습니다!</h3>
-                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                  작성해주신 상세 답변들을 기반으로 AI 포트폴리오 빌더에서 직무 맞춤형 초안을 생성할 수 있습니다.
-                </p>
-              </div>
-
-              <div className="flex gap-3 justify-center text-xs">
-                <button
-                  onClick={restartInterview}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl transition-all"
-                >
-                  인터뷰 다시하기
-                </button>
-                <button
-                  onClick={() => router.push("/portfolio/builder")}
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/30"
-                >
-                  포트폴리오 제작하러 가기
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div ref={chatEndRef} />
-        </div>
-
-        {/* Input box */}
-        {!isFinished && (
-          <form onSubmit={handleSendMessage} className="space-y-3">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={isAiTyping}
-                onClick={handleHelpSuggestion}
-                className="px-4 py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs shrink-0 disabled:opacity-50"
-              >
-                <HelpCircle className="w-4 h-4 text-amber-400" />
-                답변 가이드
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                대화 완료 및 저장
               </button>
-              <div className="relative flex-1">
+            </div>
+
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+              {messages.map((msg, index) => (
+                <div key={index} className={`flex items-start gap-3 ${msg.sender === "user" ? "flex-row-reverse" : ""}`}>
+                  <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white ${msg.sender === "user" ? "bg-blue-400" : "bg-[#0055d4]"}`}>
+                    {msg.sender === "user" ? "U" : "AI"}
+                  </div>
+                  <div className={`max-w-[75%] px-5 py-3.5 rounded-2xl text-sm leading-relaxed ${
+                    msg.sender === "user" 
+                      ? "bg-[#0055d4] text-white rounded-tr-none shadow-sm" 
+                      : "bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200"
+                  }`}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+
+              {streamedText && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#0055d4] shrink-0 flex items-center justify-center text-xs font-bold text-white">AI</div>
+                  <div className="max-w-[75%] px-5 py-3.5 rounded-2xl text-sm bg-slate-100 border border-slate-200 text-slate-800 rounded-tl-none leading-relaxed">
+                    {streamedText}
+                    <span className="inline-block w-1.5 h-4 ml-1 bg-blue-500 animate-pulse"></span>
+                  </div>
+                </div>
+              )}
+
+              {isAiTyping && !streamedText && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#0055d4] shrink-0 flex items-center justify-center text-xs font-bold text-white">AI</div>
+                  <div className="px-5 py-3.5 rounded-2xl text-sm bg-slate-100 border border-slate-200 text-slate-500 rounded-tl-none flex items-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-500" />
+                    입력 중...
+                  </div>
+                </div>
+              )}
+              
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Chat Input */}
+            <div className="p-4 bg-white border-t border-slate-200">
+              <form onSubmit={handleSendMessage} className="relative">
+                <button type="button" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                </button>
                 <input
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  disabled={isAiTyping}
-                  placeholder={
-                    isAiTyping ? "AI 코치의 질문을 기다리는 중..." : "답변을 구체적으로 적어보세요..."
-                  }
-                  className="w-full bg-slate-900 border border-white/5 rounded-xl pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+                  disabled={isAiTyping || isFinished}
+                  placeholder="답변을 입력하거나 마이크를 사용하세요..."
+                  className="w-full bg-white border border-slate-300 rounded-xl pl-11 pr-14 py-3.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
                 />
                 <button
                   type="submit"
-                  disabled={isAiTyping || !inputValue.trim()}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-800 text-white disabled:text-slate-500 rounded-lg transition-all"
+                  disabled={isAiTyping || isFinished || !inputValue.trim()}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#0055d4] hover:bg-blue-700 disabled:bg-slate-300 rounded-lg flex items-center justify-center text-white transition-colors"
                 >
                   <Send className="w-4 h-4" />
                 </button>
+              </form>
+            </div>
+            
+            {/* Finished Overlay */}
+            {isFinished && (
+              <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <CheckCircle2 className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">활동 인터뷰 완료!</h3>
+                <p className="text-slate-500 mb-6 max-w-xs">
+                  작성해주신 상세 답변들을 기반으로 AI 포트폴리오 초안이 성공적으로 생성되었습니다.
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={restartInterview} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50">다시하기</button>
+                  <button onClick={() => router.push("/portfolio/builder")} className="px-5 py-2.5 bg-[#0055d4] text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">포트폴리오 제작하기</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Panel Column */}
+        <div className="w-full lg:w-80 shrink-0 flex flex-col gap-6">
+          
+          {/* Summary Panel */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+              <TrendingUp className="w-4 h-4 text-blue-600" />
+              추출된 인사이트 요약
+            </h3>
+            <div className="mb-4">
+              <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1.5">
+                <span>인사이트 추출 진행도</span>
+                <span className="text-blue-600">45%</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-[#0055d4] rounded-full" style={{ width: "45%" }}></div>
               </div>
             </div>
-            <p className="text-[10px] text-slate-500 text-center">
-              대화 내용은 브라우저 상태에 임시 저장되며, 새로고침 시 소실될 수 있으니 완료 버튼을 눌러 저장하세요.
-            </p>
-          </form>
-        )}
+            <ul className="space-y-3">
+              <li className="flex items-start gap-2 text-xs text-slate-700">
+                <div className="w-1 h-1 rounded-full bg-slate-800 mt-1.5 shrink-0"></div>
+                작업 완료 시간 30% 단축 성과 도출
+              </li>
+              <li className="flex items-start gap-2 text-xs text-slate-700">
+                <div className="w-1 h-1 rounded-full bg-slate-800 mt-1.5 shrink-0"></div>
+                B2B 대시보드 리뉴얼 경험
+              </li>
+              <li className="flex items-start gap-2 text-xs text-slate-700">
+                <div className="w-1 h-1 rounded-full bg-slate-800 mt-1.5 shrink-0"></div>
+                사용자 리서치 기반 문제 해결
+              </li>
+            </ul>
+          </div>
+
+          {/* AI Insights Panel */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex-1">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+              <HelpCircle className="w-4 h-4 text-amber-500" />
+              AI 인사이트
+            </h3>
+            
+            <div className="space-y-3">
+              <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3">
+                <h4 className="font-bold text-xs text-indigo-900 mb-1">STAR 기법 가이드</h4>
+                <p className="text-[11px] text-indigo-800/80 leading-relaxed">
+                  어떤 상황(Situation)에서 리서치를 기획했고, 주어진 과제(Task)는 무엇이었는지 덧붙여 설명해 보세요.
+                </p>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
+                <h4 className="font-bold text-xs text-slate-800 mb-1">성과 표현 팁</h4>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  수치화된 성과(30% 단축)를 언급한 점이 아주 좋습니다. 구체적인 데이터를 계속 활용하세요.
+                </p>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  리서치에서 사용한 특정 방법론(예: 심층 인터뷰, 사용성 테스트)을 언급하면 신뢰도를 높일 수 있습니다.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </DashboardLayout>
   );

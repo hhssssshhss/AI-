@@ -1,11 +1,18 @@
-import { NextResponse } from "next/server";
-import { getAuthUrl } from "@/lib/google-drive";
+import { NextResponse, NextRequest } from "next/server";
+import { getGoogleOAuthUrl } from "@/lib/google-drive";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const url = getAuthUrl();
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    }
+
+    const url = getGoogleOAuthUrl(userId);
     return NextResponse.redirect(url);
   } catch (error) {
     console.error("[OAuth redirect] Error generating URL:", error);

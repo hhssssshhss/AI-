@@ -31,6 +31,15 @@ export async function getTokens(code: string) {
   return tokens;
 }
 
+export const getGoogleOAuthUrl = (userId: string) => {
+  return oauth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: ["https://www.googleapis.com/auth/drive.file"],
+    prompt: "consent",
+    state: userId,
+  });
+};
+
 /**
  * OAuth2 클라이언트에 자격증명(토큰) 설정
  */
