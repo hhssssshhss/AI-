@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
         role: "model",
         parts: [{ text: "네, 이해했습니다. 인터뷰를 시작하겠습니다." }],
       },
+      ...(conversationHistory?.length > 0 ? [{ role: "user" as const, parts: [{ text: "인터뷰를 시작해 주세요." }] }] : []),
       ...(conversationHistory || []),
     ],
   });

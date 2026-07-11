@@ -380,41 +380,61 @@ export default function InterviewPage() {
                 </div>
               ))}
 
-              {streamedText && (
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#0055d4] shrink-0 flex items-center justify-center text-xs font-bold text-white">AI</div>
-                  <div className="max-w-[75%] px-5 py-3.5 rounded-2xl text-sm bg-slate-100 border border-slate-200 text-slate-800 rounded-tl-none leading-relaxed">
-                    {streamedText}
-                    <span className="inline-block w-1.5 h-4 ml-1 bg-blue-500 animate-pulse"></span>
-                  </div>
-                </div>
-              )}
-
-              {isAiTyping && !streamedText && (
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#0055d4] shrink-0 flex items-center justify-center text-xs font-bold text-white">AI</div>
-                  <div className="px-5 py-3.5 rounded-2xl text-sm bg-slate-100 border border-slate-200 text-slate-500 rounded-tl-none flex items-center gap-2">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-500" />
-                    입력 중...
-                  </div>
-                </div>
-              )}
-              
-              <div ref={chatEndRef} />
+        {/* Left Panel Column: Chat */}
+        <div className="flex-1 flex flex-col bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden relative">
+          
+          <div className="bg-slate-50 border-b border-slate-200 p-5 shrink-0 flex justify-between items-center">
+            <div>
+              <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                <Mic className="w-5 h-5 text-indigo-500" />
+                모의 면접 인터뷰
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">STAR 프레임워크 기반 꼬리 질문 세션</p>
             </div>
+            {isRecording && (
+              <span className="flex items-center gap-2 text-xs font-semibold text-red-500 bg-red-50 px-3 py-1.5 rounded-full animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                음성 인식 중...
+              </span>
+            )}
+          </div>
 
-            {/* Chat Input */}
-            <div className="p-4 bg-white border-t border-slate-200">
-              <form onSubmit={handleSendMessage} className="relative flex gap-2">
-                <button 
-                  type="button" 
+          <div className="flex-1 p-6 overflow-y-auto space-y-6 scroll-smooth bg-slate-50/50">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"} group`}>
+                <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm text-sm leading-relaxed ${
+                  msg.sender === "user" 
+                    ? "bg-[#0055d4] text-white rounded-tr-sm" 
+                    : "bg-white border border-slate-200 text-slate-700 rounded-tl-sm"
+                }`}>
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+            
+            {streamedText && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-2xl p-4 shadow-sm text-sm leading-relaxed bg-white border border-indigo-200 text-slate-700 rounded-tl-sm">
+                  {streamedText}
+                  <span className="inline-block w-1 h-4 ml-1 bg-indigo-400 animate-pulse align-middle"></span>
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          <div className="p-5 bg-white border-t border-slate-200 shrink-0">
+            {!isFinished ? (
+              <form onSubmit={handleSendMessage} className="relative flex items-center gap-3">
+                <button
+                  type="button"
                   onClick={toggleRecording}
-                  className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-colors shadow-sm border ${
+                  className={`p-3.5 rounded-xl transition-all shadow-sm ${
                     isRecording 
-                      ? "bg-red-50 text-red-500 border-red-200 animate-pulse" 
-                      : "bg-slate-50 text-slate-500 hover:text-blue-500 hover:bg-blue-50 hover:border-blue-200 border-slate-200"
+                      ? "bg-red-50 text-red-500 hover:bg-red-100 border border-red-200" 
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200"
                   }`}
-                  title="음성 인식 토글"
+                  title={isRecording ? "음성 인식 중지" : "음성 인식 시작"}
                 >
                   {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                 </button>
@@ -423,35 +443,29 @@ export default function InterviewPage() {
                     type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    disabled={isAiTyping || isFinished}
-                    placeholder="답변을 입력하거나 마이크를 사용하여 말씀하세요..."
-                    className="w-full h-12 bg-white border border-slate-300 rounded-xl px-4 pr-14 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
+                    placeholder={isAiTyping ? "AI가 질문을 작성 중입니다..." : (isRecording ? "마이크에 대고 말씀해주세요..." : "답변을 입력하세요...")}
+                    disabled={isAiTyping}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3.5 text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-all disabled:opacity-50"
                   />
-                  <button
-                    type="submit"
-                    disabled={isAiTyping || isFinished || (!inputValue.trim() && !isRecording)}
-                    className="absolute right-1 top-1 w-10 h-10 bg-[#0055d4] hover:bg-blue-700 disabled:bg-slate-300 rounded-lg flex items-center justify-center text-white transition-colors"
+                  <button 
+                    type="submit" 
+                    disabled={isAiTyping || !inputValue.trim()}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#0055d4] text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:bg-slate-300"
                   >
                     <Send className="w-4 h-4" />
                   </button>
                 </div>
               </form>
-            </div>
-
-            
-            {/* Finished Overlay */}
-            {isFinished && (
-              <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <CheckCircle2 className="w-8 h-8 text-blue-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">활동 인터뷰 완료!</h3>
-                <p className="text-slate-500 mb-6 max-w-xs">
+            ) : (
+              <div className="bg-blue-50 border border-blue-100 p-5 rounded-xl text-center">
+                <CheckCircle2 className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                <h3 className="font-bold text-slate-800 mb-1">인터뷰가 완료되었습니다!</h3>
+                <p className="text-xs text-slate-500 mb-4">
                   작성해주신 상세 답변들을 기반으로 AI 포트폴리오 초안이 성공적으로 생성되었습니다.
                 </p>
-                <div className="flex gap-3">
-                  <button onClick={restartInterview} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50">다시하기</button>
-                  <button onClick={() => router.push("/portfolio/builder")} className="px-5 py-2.5 bg-[#0055d4] text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">포트폴리오 제작하기</button>
+                <div className="flex gap-3 justify-center">
+                  <button onClick={() => window.location.reload()} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50 text-sm">다시하기</button>
+                  <button onClick={() => router.push("/portfolio/builder")} className="px-5 py-2.5 bg-[#0055d4] text-white font-bold rounded-lg hover:bg-blue-700 shadow-md text-sm">포트폴리오 제작하기</button>
                 </div>
               </div>
             )}
@@ -470,55 +484,62 @@ export default function InterviewPage() {
             <div className="mb-4">
               <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1.5">
                 <span>인사이트 추출 진행도</span>
-                <span className="text-blue-600">45%</span>
+                <span className="text-blue-600">{progressPercent}%</span>
               </div>
               <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-[#0055d4] rounded-full" style={{ width: "45%" }}></div>
+                <div className="h-full bg-[#0055d4] rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
               </div>
             </div>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-2 text-xs text-slate-700">
-                <div className="w-1 h-1 rounded-full bg-slate-800 mt-1.5 shrink-0"></div>
-                작업 완료 시간 30% 단축 성과 도출
-              </li>
-              <li className="flex items-start gap-2 text-xs text-slate-700">
-                <div className="w-1 h-1 rounded-full bg-slate-800 mt-1.5 shrink-0"></div>
-                B2B 대시보드 리뉴얼 경험
-              </li>
-              <li className="flex items-start gap-2 text-xs text-slate-700">
-                <div className="w-1 h-1 rounded-full bg-slate-800 mt-1.5 shrink-0"></div>
-                사용자 리서치 기반 문제 해결
-              </li>
-            </ul>
+            
+            {userAnswersCount === 0 ? (
+              <p className="text-xs text-slate-500 text-center py-4 bg-slate-50 rounded-lg">아직 추출된 인사이트가 없습니다.<br/>답변을 시작해 주세요.</p>
+            ) : (
+              <ul className="space-y-3 mt-4 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                {messages.filter(m => m.sender === "user").map((m, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-slate-700">
+                    <div className="w-1 h-1 rounded-full bg-slate-800 mt-1.5 shrink-0"></div>
+                    {m.text.length > 30 ? m.text.slice(0, 30) + "..." : m.text}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* AI Insights Panel */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex-1">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-              <HelpCircle className="w-4 h-4 text-amber-500" />
-              AI 인사이트
-            </h3>
-            
-            <div className="space-y-3">
-              <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3">
-                <h4 className="font-bold text-xs text-indigo-900 mb-1">STAR 기법 가이드</h4>
-                <p className="text-[11px] text-indigo-800/80 leading-relaxed">
-                  어떤 상황(Situation)에서 리서치를 기획했고, 주어진 과제(Task)는 무엇이었는지 덧붙여 설명해 보세요.
-                </p>
-              </div>
-              <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
-                <h4 className="font-bold text-xs text-slate-800 mb-1">성과 표현 팁</h4>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  수치화된 성과(30% 단축)를 언급한 점이 아주 좋습니다. 구체적인 데이터를 계속 활용하세요.
-                </p>
-              </div>
-              <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  리서치에서 사용한 특정 방법론(예: 심층 인터뷰, 사용성 테스트)을 언급하면 신뢰도를 높일 수 있습니다.
-                </p>
+          {userAnswersCount > 0 ? (
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex-1">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                <HelpCircle className="w-4 h-4 text-amber-500" />
+                AI 인사이트
+              </h3>
+              
+              <div className="space-y-3">
+                <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3">
+                  <h4 className="font-bold text-xs text-indigo-900 mb-1">STAR 기법 가이드</h4>
+                  <p className="text-[11px] text-indigo-800/80 leading-relaxed">
+                    어떤 상황(Situation)에서 리서치를 기획했고, 주어진 과제(Task)는 무엇이었는지 덧붙여 설명해 보세요.
+                  </p>
+                </div>
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
+                  <h4 className="font-bold text-xs text-slate-800 mb-1">성과 표현 팁</h4>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    수치화된 성과나 구체적인 지표가 있다면 이를 언급하여 답변의 신뢰도를 높여 보세요.
+                  </p>
+                </div>
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    본인이 사용한 특정 방법론이나 문제 해결 과정을 구체적으로 언급하면 더욱 좋은 포트폴리오 소스가 됩니다.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex-1 flex flex-col items-center justify-center text-center opacity-80">
+              <HelpCircle className="w-8 h-8 text-slate-300 mb-3" />
+              <h3 className="font-bold text-slate-600 mb-1">AI 인사이트 대기 중</h3>
+              <p className="text-xs text-slate-400">첫 번째 질문에 답변을 남기시면 맞춤형 팁이 생성됩니다.</p>
+            </div>
+          )}
 
         </div>
       </div>
