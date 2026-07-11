@@ -250,6 +250,28 @@ function ActivitiesContent() {
           periodStart: dbActivity.periodStart ? new Date(dbActivity.periodStart).toISOString().split('T')[0] : undefined,
           periodEnd: dbActivity.periodEnd ? new Date(dbActivity.periodEnd).toISOString().split('T')[0] : undefined,
         } as unknown as Activity);
+      } else {
+        // DB 연결이 없는(수동 로그인 등) 로컬 프로토타입 환경일 경우 직접 상태 업데이트
+        removeActivity(tempId);
+        addActivity({
+          id: `act_${Math.random().toString(36).substring(2, 11)}`,
+          title: activityTitle,
+          summary: resultActivity.summary,
+          role: resultActivity.role,
+          keywords: resultActivity.keywords,
+          periodStart: startDate || undefined,
+          periodEnd: endDate || undefined,
+          status: "READY",
+          files: [{
+            id: `file_${Math.random().toString(36).substring(2, 11)}`,
+            googleDriveFileId: googleDriveFileId,
+            fileName: file.name,
+            mimeType: file.type,
+            sizeBytes: file.size,
+            parseStatus: "DONE"
+          }],
+          interview: null
+        } as unknown as Activity);
       }
 
     } catch (err) {
