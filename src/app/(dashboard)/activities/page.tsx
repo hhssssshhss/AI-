@@ -344,7 +344,7 @@ function ActivitiesContent() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
               필터
             </button>
-            {driveLinked ? (
+            {driveAccessToken ? (
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-[#0055d4] hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition-all"
@@ -465,14 +465,14 @@ function ActivitiesContent() {
               </p>
               
               <button
-                onClick={() => driveLinked ? setIsModalOpen(true) : handleOAuthConnect()}
+                onClick={() => driveAccessToken ? setIsModalOpen(true) : handleOAuthConnect()}
                 className="px-8 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 text-sm"
               >
                 <UploadCloud className="w-5 h-5" />
-                {driveLinked ? "첫 활동 추가하기" : "구글 드라이브 연동하고 시작하기"}
+                {driveAccessToken ? "첫 활동 추가하기" : "구글 드라이브 연동하고 시작하기"}
               </button>
 
-              {!driveLinked && (
+              {!driveAccessToken && (
                 <p className="mt-4 text-xs font-semibold text-blue-500">
                   파일 업로드를 위해 최초 1회 구글 드라이브 연동이 필요합니다.
                 </p>
