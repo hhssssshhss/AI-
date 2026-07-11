@@ -1,41 +1,33 @@
-// GET /api/google/oauth/callback
-// Google OAuth 콜백 처리 — access_token을 쿼리로 전달하여 클라이언트에서 Zustand에 저장
-import { NextRequest, NextResponse } from "next/server";
-import { google } from "googleapis";
+import { NextRequest, NextResponse } from 'next/server';
+import { getTokens } from '@/lib/google-drive';
+import { cookies } from 'next/headers';
 
-const clientId = process.env.GOOGLE_CLIENT_ID || "";
-const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
-const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/google/oauth/callback`;
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const code = searchParams.get('code');
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const code = searchParams.get("code");
-  const error = searchParams.get("error");
-
-  if (error || !code) {
-    return NextResponse.redirect(
-      new URL(`/activities?oauthError=true`, req.url)
-    );
+  if (!code) {
+    return NextResponse.json({ error: 'No authorization code provided by Google.' }, { status: 400 });
   }
 
   try {
-    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
-    const { tokens } = await oauth2Client.getToken(code);
+    // 코드를 사용해 토큰(액세스 토큰, 리프레시 토큰 등) 발급
+    const tokens = await getTokens(code);
+    
+    // PRD에 명시된 대로 실제 DB 영속화는 목업이므로 
+    // 발급받은 토큰을 HttpOnly 쿠키에 저장하여 세션 유지
+    const cookieStore = await cookies();
+    cookieStore.set('google_oauth_tokens', JSON.stringify(tokens), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7일 유지
+    });
 
-    const accessToken = tokens.access_token || "";
-    const expiresIn = tokens.expiry_date || Date.now() + 3600 * 1000;
-
-    // access_token을 URL 파라미터로 전달 — 클라이언트에서 Zustand 스토어에 저장
-    // (서버 DB 없으므로 세션에 직접 저장하지 않음)
-    const redirectUrl = new URL("/activities", req.url);
-    redirectUrl.searchParams.set("driveToken", accessToken);
-    redirectUrl.searchParams.set("driveTokenExpiry", String(expiresIn));
-
-    return NextResponse.redirect(redirectUrl);
-  } catch (err) {
-    console.error("[OAuth callback] Error:", err);
-    return NextResponse.redirect(
-      new URL(`/activities?oauthError=true`, req.url)
-    );
+    // 구글 연동 완료 후 대시보드 내 활동 등록 페이지로 리다이렉트
+    return NextResponse.redirect(new URL('/dashboard/activities', request.url));
+  } catch (error: any) {
+    console.error('Google OAuth Callback Error:', error);
+    return NextResponse.json({ error: 'Failed to exchange authorization code for tokens.', details: error.message }, { status: 500 });
   }
 }
