@@ -3,13 +3,12 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 const prismaClientSingleton = () => {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
   if (!connectionString) {
-    console.error("DATABASE_URL is not defined in process.env");
-    throw new Error("DATABASE_URL is not defined");
+    console.warn("DATABASE_URL is not defined in process.env. Using dummy for build step.");
   }
 
-  const pool = new Pool({ connectionString });
+  const pool = new Pool({ connectionString: connectionString || "postgres://dummy:dummy@localhost/dummy" });
   const adapter = new PrismaPg(pool);
   
   return new PrismaClient({ adapter });
