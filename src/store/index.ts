@@ -73,7 +73,6 @@ export interface AnalysisReport {
   suggestions: string[];
 }
 
-import { persist } from "zustand/middleware";
 
 // ──────────────────────────────────────────────────────
 // Auth state (DB 연동 기반 세션 관리)
