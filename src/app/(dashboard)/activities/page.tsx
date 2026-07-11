@@ -303,7 +303,7 @@ function ActivitiesContent() {
     }
   };
 
-  const handleManualSubmit = (e: React.FormEvent) => {
+  const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualInputActivityId) return;
     if (!manualSummary.trim() || !manualRole.trim()) {
@@ -316,12 +316,50 @@ function ActivitiesContent() {
       .map(k => k.trim())
       .filter(k => k.length > 0);
 
-    updateActivity(manualInputActivityId, {
-      summary: manualSummary,
-      role: manualRole,
-      keywords: keywordList,
-      status: "READY"
-    });
+    const act = activities.find(a => a.id === manualInputActivityId);
+
+    if (userId && act) {
+      try {
+        const dbActivity = await createActivity(userId, {
+          title: act.title,
+          summary: manualSummary,
+          role: manualRole,
+          keywords: keywordList,
+          periodStart: act.periodStart,
+          periodEnd: act.periodEnd,
+          files: act.files.map(f => ({
+            googleDriveFileId: f.googleDriveFileId,
+            fileName: f.fileName,
+            mimeType: f.mimeType,
+            sizeBytes: f.sizeBytes,
+          })),
+        });
+
+        removeActivity(manualInputActivityId);
+        addActivity({
+          ...dbActivity,
+          summary: dbActivity.summary ?? undefined,
+          role: dbActivity.role ?? undefined,
+          periodStart: dbActivity.periodStart ? new Date(dbActivity.periodStart).toISOString().split('T')[0] : undefined,
+          periodEnd: dbActivity.periodEnd ? new Date(dbActivity.periodEnd).toISOString().split('T')[0] : undefined,
+        } as unknown as Activity);
+      } catch (err) {
+        console.error(err);
+        updateActivity(manualInputActivityId, {
+          summary: manualSummary,
+          role: manualRole,
+          keywords: keywordList,
+          status: "READY"
+        });
+      }
+    } else {
+      updateActivity(manualInputActivityId, {
+        summary: manualSummary,
+        role: manualRole,
+        keywords: keywordList,
+        status: "READY"
+      });
+    }
 
     // Reset 수동 입력 상태
     setManualInputActivityId(null);
