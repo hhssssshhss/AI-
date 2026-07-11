@@ -258,6 +258,8 @@ function ActivitiesContent() {
       updateActivity(tempId, {
         status: "NEEDS_MANUAL_INPUT"
       });
+      setManualInputActivityId(tempId);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setIsUploading(false);
       setUploadProgress("");
@@ -461,7 +463,14 @@ function ActivitiesContent() {
               <div 
                 key={act.id} 
                 className="bg-white border border-slate-200 rounded-2xl flex flex-col hover:shadow-md transition-shadow overflow-hidden relative cursor-pointer"
-                onClick={() => act.status === "READY" && router.push(`/activities/${act.id}/interview`)}
+                onClick={() => {
+                  if (act.status === "READY") {
+                    router.push(`/activities/${act.id}/interview`);
+                  } else if (act.status === "NEEDS_MANUAL_INPUT") {
+                    setManualInputActivityId(act.id);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
               >
                 {/* Mock Image Placeholder */}
                 <div className="h-40 bg-slate-100 w-full relative">
