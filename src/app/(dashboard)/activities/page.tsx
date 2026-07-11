@@ -51,20 +51,22 @@ function ActivitiesContent() {
     }
   }, [searchParams, setDriveLinked]);
 
-  // DB에서 유저 활동 불러오기 (Zustand 로컬 스토리지와 충돌 방지를 위해 덮어쓰기 비활성화)
+  // DB에서 유저 활동 불러오기 (Zustand 로컬 스토리지와 최신 상태 동기화)
   useEffect(() => {
-    // if (userId) {
-    //   fetchUserActivities(userId).then((data) => {
-    //     const mapped = data.map((d) => ({
-    //       ...d,
-    //       summary: d.summary ?? undefined,
-    //       role: d.role ?? undefined,
-    //       periodStart: d.periodStart ? new Date(d.periodStart).toISOString().split('T')[0] : undefined,
-    //       periodEnd: d.periodEnd ? new Date(d.periodEnd).toISOString().split('T')[0] : undefined,
-    //     })) as unknown as Activity[];
-    //     // setActivities(mapped); // 주석 처리: DB 내용으로 로컬 Zustand 데이터를 덮어쓰면서 인터뷰/수동입력 데이터가 날아가는 현상 방지
-    //   }).catch(console.error);
-    // }
+    if (userId) {
+      fetchUserActivities(userId).then((data) => {
+        const mapped = data.map((d) => ({
+          ...d,
+          summary: d.summary ?? undefined,
+          role: d.role ?? undefined,
+          periodStart: d.periodStart ? new Date(d.periodStart).toISOString().split('T')[0] : undefined,
+          periodEnd: d.periodEnd ? new Date(d.periodEnd).toISOString().split('T')[0] : undefined,
+        })) as unknown as Activity[];
+        
+        // 서버에서 가져온 최신 데이터를 상태에 덮어씌움 (인터뷰 데이터도 이제 서버에 저장됨)
+        setActivities(mapped);
+      }).catch(console.error);
+    }
   }, [userId, setActivities]);
 
   const handleOAuthConnect = () => {
@@ -101,11 +103,15 @@ function ActivitiesContent() {
   const handleDeleteActivity = async (id: string) => {
     if (!confirm("정말 삭제하시겠습니까?")) return;
     try {
-      await deleteActivityAction(id);
-      removeActivity(id);
+      // 로컬 전용 ID(act_)가 아니면 DB 삭제 시도
+      if (!id.startsWith("act_") && !id.startsWith("temp_")) {
+        await deleteActivityAction(id);
+      }
     } catch (err) {
-      console.error(err);
-      alert("삭제 중 오류가 발생했습니다.");
+      console.error("DB 삭제 실패 (로컬 전용 데이터일 수 있음)", err);
+    } finally {
+      // 에러 발생 여부와 상관없이 로컬 UI(Zustand)에서는 무조건 삭제
+      removeActivity(id);
     }
   };
 
@@ -156,6 +162,11 @@ function ActivitiesContent() {
       body: formData
     });
 
+    if (uploadRes.status === 401) {
+      setDriveLinked(false, undefined);
+      throw new Error("구글 드라이브 접근 권한이 만료되었습니다. 다시 연동해주세요.");
+    }
+    
     if (!uploadRes.ok) {
       throw new Error(`Drive 업로드 실패: ${uploadRes.statusText}`);
     }
@@ -595,7 +606,7 @@ function ActivitiesContent() {
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 [color-scheme:dark]"
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-70 [&::-webkit-calendar-picker-indicator]:invert"
                     />
                   </div>
                   <div>
@@ -606,7 +617,7 @@ function ActivitiesContent() {
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 [color-scheme:dark]"
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-70 [&::-webkit-calendar-picker-indicator]:invert"
                     />
                   </div>
                 </div>

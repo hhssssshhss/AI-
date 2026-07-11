@@ -14,6 +14,7 @@ import {
   Mic,
   MicOff
 } from "lucide-react";
+import { saveInterviewToDB } from "@/app/actions/activities";
 
 export default function InterviewPage() {
   const router = useRouter();
@@ -257,7 +258,7 @@ export default function InterviewPage() {
   };
 
 
-  const finishInterview = (lastAnswer: string) => {
+  const finishInterview = async (lastAnswer: string) => {
     setIsFinished(true);
 
     // Q&A 데이터 구조 구성
@@ -285,6 +286,13 @@ export default function InterviewPage() {
         order++;
         currentQa = {};
       }
+    }
+
+    // 서버 DB에 동기화 (로컬 모드인 경우 내부에서 무시됨)
+    try {
+      await saveInterviewToDB(id, qaItems);
+    } catch (err) {
+      console.error("DB 저장 실패:", err);
     }
 
     // Zustand 스토어 업데이트

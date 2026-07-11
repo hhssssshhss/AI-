@@ -53,3 +53,29 @@ export async function deleteActivityAction(activityId: string) {
   });
   return true;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function saveInterviewToDB(activityId: string, qaItems: any[]) {
+  if (!activityId || activityId.startsWith("act_") || activityId.startsWith("temp_")) {
+    return null; // 로컬 전용 ID인 경우 DB 저장을 생략
+  }
+
+  const interview = await prisma.interview.create({
+    data: {
+      activityId,
+      status: "COMPLETED",
+      qaItems: {
+        create: qaItems.map(item => ({
+          question: item.question,
+          answer: item.answer,
+          category: item.category || "PROBLEM"
+        }))
+      }
+    },
+    include: {
+      qaItems: true
+    }
+  });
+
+  return interview;
+}
