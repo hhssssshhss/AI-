@@ -105,6 +105,20 @@ JSON 형식: { blocks: [{id, type, content, activityId?}] }`;
     });
 
     const portfolio = JSON.parse(result.response.text());
+    
+    // AI가 생성한 각 블록에, 원본 활동의 첫 번째 파일(이미지 등)의 드라이브 ID를 매핑해 줍니다.
+    if (portfolio.blocks && Array.isArray(portfolio.blocks)) {
+      portfolio.blocks = portfolio.blocks.map((block: any) => {
+        if (block.activityId) {
+          const matchedActivity = activities.find((a: any) => a.id === block.activityId);
+          if (matchedActivity && matchedActivity.files && matchedActivity.files.length > 0) {
+            block.googleDriveFileId = matchedActivity.files[0].googleDriveFileId;
+          }
+        }
+        return block;
+      });
+    }
+
     return NextResponse.json(portfolio);
   } catch (error) {
     console.error("[/api/portfolio/generate] Error:", error);

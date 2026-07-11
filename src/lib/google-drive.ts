@@ -107,3 +107,20 @@ export async function uploadFileToDrive(
 
   return fileRes.data.id!;
 }
+
+/**
+ * 구글 드라이브에서 파일 스트림 가져오기 (이미지 렌더링용)
+ */
+export async function getFileStream(fileId: string, accessToken: string) {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+  
+  const drive = google.drive({ version: 'v3', auth });
+  
+  const res = await drive.files.get(
+    { fileId, alt: 'media' },
+    { responseType: 'stream' }
+  );
+  
+  return res.data;
+}

@@ -57,6 +57,7 @@ export interface PortfolioBlock {
   type: "title" | "intro" | "activity" | "summary";
   content: string;
   activityId?: string;
+  googleDriveFileId?: string;
 }
 
 export interface Portfolio {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PortfolioBlock } from "@/store";
+import { PortfolioBlock, useAuthStore } from "@/store";
 import { 
   ArrowUp, 
   ArrowDown, 
@@ -24,6 +24,8 @@ export default function BlockEditor({ blocks, targetJob, onUpdateBlocks }: Block
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [rewriteOption, setRewriteOption] = useState<"concise" | "highlight" | "keyword">("concise");
   const [loadingBlockId, setLoadingBlockId] = useState<string | null>(null);
+  
+  const { driveAccessToken } = useAuthStore();
 
   const handleTextChange = (id: string, text: string) => {
     const updated = blocks.map(b => b.id === id ? { ...b, content: text } : b);
@@ -192,23 +194,43 @@ export default function BlockEditor({ blocks, targetJob, onUpdateBlocks }: Block
               </div>
             )}
 
-            {/* Block Body Textarea */}
-            <div className="relative">
-              <textarea
-                value={block.content}
-                onChange={(e) => handleTextChange(block.id, e.target.value)}
-                disabled={isLoading}
-                rows={block.type === "title" ? 1 : block.type === "intro" ? 3 : 5}
-                className={`w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-blue-500 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition-all resize-none custom-scrollbar leading-relaxed ${
-                  block.type === "title" ? "text-lg font-bold" : ""
-                } disabled:opacity-50 focus:bg-white focus:ring-1 focus:ring-blue-500 shadow-inner`}
-                placeholder={`${meta.label} 내용을 입력하세요...`}
-              />
-              {isLoading && (
-                <div className="absolute inset-0 bg-white/60 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 animate-pulse bg-white px-4 py-2 rounded-full shadow-sm">
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    AI가 문장을 교정하는 중...
+            {/* Block Body: Text and (Optional) Image Layout */}
+            <div className={`relative ${block.googleDriveFileId ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : ''}`}>
+              <div className="relative h-full flex flex-col">
+                <textarea
+                  value={block.content}
+                  onChange={(e) => handleTextChange(block.id, e.target.value)}
+                  disabled={isLoading}
+                  rows={block.googleDriveFileId ? 8 : (block.type === "title" ? 1 : block.type === "intro" ? 3 : 5)}
+                  className={`w-full h-full min-h-[120px] bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-blue-500 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition-all resize-none custom-scrollbar leading-relaxed ${
+                    block.type === "title" ? "text-lg font-bold" : ""
+                  } disabled:opacity-50 focus:bg-white focus:ring-1 focus:ring-blue-500 shadow-inner`}
+                  placeholder={`${meta.label} 내용을 입력하세요...`}
+                />
+                {isLoading && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 animate-pulse bg-white px-4 py-2 rounded-full shadow-sm">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      AI가 문장을 교정하는 중...
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Image Side */}
+              {block.googleDriveFileId && driveAccessToken && (
+                <div className="relative bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center min-h-[200px]">
+                  <img 
+                    src={`/api/drive/image?fileId=${block.googleDriveFileId}&token=${driveAccessToken}`} 
+                    alt="Activity Reference" 
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+                      (e.target as HTMLImageElement).className = 'w-16 h-16 opacity-30';
+                    }}
+                  />
+                  <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded-md backdrop-blur-sm font-semibold">
+                    첨부된 활동 사진
                   </div>
                 </div>
               )}
