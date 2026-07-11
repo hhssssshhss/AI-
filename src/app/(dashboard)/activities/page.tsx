@@ -51,20 +51,20 @@ function ActivitiesContent() {
     }
   }, [searchParams, setDriveLinked]);
 
-  // DB에서 유저 활동 불러오기
+  // DB에서 유저 활동 불러오기 (Zustand 로컬 스토리지와 충돌 방지를 위해 덮어쓰기 비활성화)
   useEffect(() => {
-    if (userId) {
-      fetchUserActivities(userId).then((data) => {
-        const mapped = data.map((d) => ({
-          ...d,
-          summary: d.summary ?? undefined,
-          role: d.role ?? undefined,
-          periodStart: d.periodStart ? new Date(d.periodStart).toISOString().split('T')[0] : undefined,
-          periodEnd: d.periodEnd ? new Date(d.periodEnd).toISOString().split('T')[0] : undefined,
-        })) as unknown as Activity[];
-        setActivities(mapped);
-      }).catch(console.error);
-    }
+    // if (userId) {
+    //   fetchUserActivities(userId).then((data) => {
+    //     const mapped = data.map((d) => ({
+    //       ...d,
+    //       summary: d.summary ?? undefined,
+    //       role: d.role ?? undefined,
+    //       periodStart: d.periodStart ? new Date(d.periodStart).toISOString().split('T')[0] : undefined,
+    //       periodEnd: d.periodEnd ? new Date(d.periodEnd).toISOString().split('T')[0] : undefined,
+    //     })) as unknown as Activity[];
+    //     // setActivities(mapped); // 주석 처리: DB 내용으로 로컬 Zustand 데이터를 덮어쓰면서 인터뷰/수동입력 데이터가 날아가는 현상 방지
+    //   }).catch(console.error);
+    // }
   }, [userId, setActivities]);
 
   const handleOAuthConnect = () => {
@@ -573,7 +573,7 @@ function ActivitiesContent() {
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 [color-scheme:dark]"
                     />
                   </div>
                   <div>
@@ -584,7 +584,7 @@ function ActivitiesContent() {
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 [color-scheme:dark]"
                     />
                   </div>
                 </div>
