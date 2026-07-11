@@ -426,22 +426,34 @@ function ActivitiesContent() {
           </div>
         )}
 
-        {/* Activities Grid */}
         {activities.length === 0 ? (
-          <div 
-            onClick={() => driveLinked ? setIsModalOpen(true) : handleOAuthConnect()}
-            className="flex flex-col items-center justify-center py-24 bg-white border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-2xl text-center cursor-pointer transition-colors max-w-sm"
-          >
-            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-              <span className="text-2xl text-blue-600 font-light">+</span>
+          <div className="flex flex-col items-center justify-center py-32 bg-white border border-slate-200 rounded-3xl text-center shadow-sm relative overflow-hidden">
+            {/* Background Decorations */}
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/50 via-white to-white pointer-events-none"></div>
+            
+            <div className="relative z-10 flex flex-col items-center">
+              <div className="w-20 h-20 rounded-2xl bg-blue-50 flex items-center justify-center mb-6 shadow-sm border border-blue-100">
+                <FolderPlus className="w-10 h-10 text-blue-600" />
+              </div>
+              <h3 className="font-extrabold text-2xl text-slate-800 mb-3">포트폴리오의 시작, 첫 활동을 기록해보세요</h3>
+              <p className="text-sm text-slate-500 max-w-md leading-relaxed mb-8">
+                프로젝트, 워크샵, 자격증 등 어떤 경험이든 좋습니다. 증빙 자료를 업로드하면 AI가 핵심 역량을 분석하여 포트폴리오의 기초를 만들어 드립니다.
+              </p>
+              
+              <button
+                onClick={() => driveLinked ? setIsModalOpen(true) : handleOAuthConnect()}
+                className="px-8 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 text-sm"
+              >
+                <UploadCloud className="w-5 h-5" />
+                {driveLinked ? "첫 활동 추가하기" : "구글 드라이브 연동하고 시작하기"}
+              </button>
+
+              {!driveLinked && (
+                <p className="mt-4 text-xs font-semibold text-blue-500">
+                  파일 업로드를 위해 최초 1회 구글 드라이브 연동이 필요합니다.
+                </p>
+              )}
             </div>
-            <h3 className="font-bold text-slate-800">새 활동 추가</h3>
-            <p className="text-xs text-slate-500 mt-2 max-w-[200px] leading-relaxed">
-              새로운 프로젝트, 워크샵 또는 학습 경험을 기록하세요.
-            </p>
-            {!driveLinked && (
-              <span className="mt-4 text-xs font-semibold text-blue-600">먼저 구글 드라이브를 연동해주세요.</span>
-            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

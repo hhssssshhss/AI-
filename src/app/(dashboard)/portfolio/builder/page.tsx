@@ -195,48 +195,19 @@ export default function PortfolioBuilderPage() {
             </div>
 
             <div className="flex flex-col lg:flex-row gap-6">
-              {/* Left Side: Cards */}
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 h-max">
-                
-                {/* Create New Card */}
+              {/* Left Side: Empty State */}
+              <div className="flex-1">
                 <div 
                   onClick={() => document.getElementById('job_input')?.focus()}
-                  className="bg-slate-50 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[220px] cursor-pointer transition-colors"
+                  className="bg-slate-50 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-3xl p-10 flex flex-col items-center justify-center min-h-[300px] cursor-pointer transition-all hover:bg-blue-50/50"
                 >
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                    <span className="text-2xl text-blue-600 font-light">+</span>
+                  <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-6">
+                    <Sparkles className="w-8 h-8 text-blue-600" />
                   </div>
-                  <h3 className="font-bold text-slate-800">클릭하여 새 포트폴리오 생성</h3>
-                </div>
-
-                {/* Mock Existing Portfolio Card */}
-                <div className="bg-gradient-to-br from-[#0055d4] to-blue-700 rounded-2xl p-6 flex flex-col justify-between min-h-[220px] text-white shadow-md relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-1 relative z-10">프론트엔드 엔지니어 지원용</h3>
-                    <p className="text-blue-100 text-xs mb-4 relative z-10">생성일: 2026.07.10</p>
-                    <div className="flex gap-2 relative z-10">
-                      <span className="px-2.5 py-1 bg-white/20 rounded-md text-[10px] font-semibold">React</span>
-                      <span className="px-2.5 py-1 bg-white/20 rounded-md text-[10px] font-semibold">Next.js</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2 mt-6 relative z-10">
-                    <button className="flex-1 py-2 bg-white text-blue-700 font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 hover:bg-blue-50 transition-colors">
-                      <FileText className="w-3.5 h-3.5" />
-                      PDF로 다운로드
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setTargetJob("dev");
-                        handleGeneratePortfolio();
-                      }}
-                      className="flex-1 py-2 bg-blue-600/50 hover:bg-blue-600/80 border border-blue-400 font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      수정하기
-                    </button>
-                  </div>
+                  <h3 className="font-extrabold text-xl text-slate-800 mb-2">아직 생성된 포트폴리오가 없습니다</h3>
+                  <p className="text-sm text-slate-500 max-w-sm text-center leading-relaxed">
+                    오른쪽 패널에서 희망 직무를 설정하고 '포트폴리오 생성' 버튼을 눌러 나만의 맞춤형 포트폴리오를 만들어보세요.
+                  </p>
                 </div>
               </div>
 
