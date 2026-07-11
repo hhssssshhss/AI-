@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store";
 import Link from "next/link";
 import { 
@@ -15,43 +15,6 @@ import {
   HardDrive
 } from "lucide-react";
 
-import { Suspense } from "react";
-import { getUserById } from "@/app/actions/auth";
-
-function AuthSync() {
-  const searchParams = useSearchParams();
-  const { isLoggedIn } = useAuthStore();
-  const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    const loggedInId = searchParams?.get("loggedInUserId");
-    if (loggedInId && !isLoggedIn) {
-      getUserById(loggedInId).then(user => {
-        if (user) {
-          useAuthStore.getState().login(user);
-          const newUrl = window.location.pathname;
-          window.history.replaceState({}, document.title, newUrl);
-        } else {
-          router.replace("/login");
-        }
-      }).catch(err => {
-        console.error("Failed to fetch user:", err);
-        router.replace("/login");
-      });
-    } else if (!isLoggedIn && !loggedInId) {
-      router.replace("/login");
-    }
-  }, [mounted, searchParams, isLoggedIn, router]);
-
-  return null;
-}
-
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -63,7 +26,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setMounted(true);
   }, []);
 
-  if (!mounted || (!isLoggedIn && !window.location.search.includes("loggedInUserId"))) {
+  useEffect(() => {
+    if (mounted && !isLoggedIn) {
+      router.replace("/login");
+    }
+  }, [mounted, isLoggedIn, router]);
+
+  if (!mounted || !isLoggedIn) {
     return (
       <div className="min-h-screen bg-[#020005] flex items-center justify-center">
         <div className="relative flex items-center justify-center">
@@ -82,9 +51,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans">
-      <Suspense fallback={null}>
-        <AuthSync />
-      </Suspense>
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-slate-100/50 border-r border-slate-200 p-6 z-10 shrink-0">
         {/* Brand */}
