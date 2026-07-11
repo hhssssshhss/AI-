@@ -44,50 +44,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const navItems = [
-    { name: "활동 관리", href: "/activities", icon: FolderGit },
-    { name: "포트폴리오 빌더", href: "/portfolio/builder", icon: BookOpen },
-    { name: "또래 비교 분석", href: "/portfolio/analysis", icon: TrendingUp },
-    { name: "설정", href: "/settings", icon: Settings },
+    { name: "대시보드", href: "/dashboard", icon: TrendingUp }, // Temporary icon for dashboard
+    { name: "활동 내역", href: "/activities", icon: FolderGit },
+    { name: "포트폴리오", href: "/portfolio/builder", icon: BookOpen },
+    { name: "역량 분석", href: "/portfolio/analysis", icon: TrendingUp },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row font-sans">
-      {/* Background decoration */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[120px]"></div>
-      </div>
-
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans">
       {/* Sidebar - Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-slate-900/60 backdrop-blur-md border-r border-white/5 p-6 z-10 shrink-0">
+      <aside className="hidden md:flex flex-col w-64 bg-slate-100/50 border-r border-slate-200 p-6 z-10 shrink-0">
         {/* Brand */}
-        <div className="flex items-center gap-2 mb-8 px-2">
-          <Sparkles className="w-6 h-6 text-indigo-400" />
-          <span className="font-extrabold text-xl bg-clip-text bg-gradient-to-r from-white to-slate-400">
-            CareerFolio
-          </span>
-        </div>
-
-        {/* User Card */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-white text-sm">
-              {userName.slice(0, 2)}
-            </div>
-            <div className="overflow-hidden">
-              <p className="font-semibold text-sm text-white truncate">{userName}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <HardDrive className={`w-3.5 h-3.5 ${driveLinked ? 'text-emerald-400' : 'text-gray-500'}`} />
-                <span className="text-[10px] text-gray-400 truncate">
-                  {driveLinked ? '구글드라이브 연동됨' : '드라이브 미연동'}
-                </span>
-              </div>
-            </div>
+        <div className="flex items-center gap-2 mb-10 px-2">
+          <Sparkles className="w-6 h-6 text-blue-600" />
+          <div className="flex flex-col">
+            <span className="font-extrabold text-xl text-slate-800 leading-none">
+              CareerFolio
+            </span>
+            <span className="text-[10px] text-slate-500 mt-1 leading-none">AI 커리어 파트너</span>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1.5">
+        <nav className="flex-1 space-y-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
@@ -95,40 +74,61 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
                   isActive 
-                    ? "bg-indigo-500/10 text-indigo-300 border-l-2 border-indigo-500 font-semibold"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                    ? "bg-blue-500 text-white shadow-md shadow-blue-500/20"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
                 }`}
               >
-                <Icon className={`w-4.5 h-4.5 transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-700'}`} />
                 {item.name}
               </Link>
             );
           })}
         </nav>
 
-        {/* Logout */}
-        <button
-          onClick={() => logout()}
-          className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/5 rounded-xl text-sm font-medium transition-all mt-auto"
-        >
-          <LogOut className="w-4.5 h-4.5" />
-          로그아웃
-        </button>
+        {/* New Portfolio Button */}
+        <div className="mt-8 mb-6">
+          <Link href="/portfolio/builder" className="w-full flex items-center justify-center gap-2 py-3 bg-[#0055d4] hover:bg-blue-700 text-white rounded-full font-semibold text-sm transition-colors shadow-sm">
+            <span className="text-lg leading-none">+</span> 새 포트폴리오 만들기
+          </Link>
+        </div>
+
+        {/* User Card & Logout */}
+        <div className="mt-auto pt-4 border-t border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-slate-300 flex items-center justify-center font-bold text-slate-700 text-sm overflow-hidden">
+              {userName ? userName.slice(0, 2) : "User"}
+            </div>
+            <div className="overflow-hidden flex flex-col">
+              <span className="font-semibold text-sm text-slate-800 truncate">{userName || "User"}</span>
+              <span className="text-[10px] text-slate-500 truncate flex items-center gap-1">
+                {driveLinked ? <HardDrive className="w-3 h-3 text-emerald-500" /> : <HardDrive className="w-3 h-3 text-slate-400" />}
+                {driveLinked ? '연동됨' : '미연동'}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => logout()}
+            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            title="로그아웃"
+          >
+            <LogOut className="w-4.5 h-4.5" />
+          </button>
+        </div>
       </aside>
 
       {/* Header - Mobile */}
-      <header className="md:hidden bg-slate-900/80 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center justify-between z-20 sticky top-0">
+      <header className="md:hidden bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-20 sticky top-0">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-indigo-400" />
-          <span className="font-extrabold text-lg bg-clip-text bg-gradient-to-r from-white to-slate-400">
+          <Sparkles className="w-5 h-5 text-blue-600" />
+          <span className="font-extrabold text-lg text-slate-800">
             CareerFolio
           </span>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="text-slate-400 hover:text-white focus:outline-none"
+          className="text-slate-600 hover:text-slate-900 focus:outline-none"
         >
           {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -136,7 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Mobile Drawer Navigation */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-10 bg-slate-950/95 flex flex-col pt-20 px-6 pb-6 animate-fade-in">
+        <div className="md:hidden fixed inset-0 z-10 bg-white/95 backdrop-blur-md flex flex-col pt-20 px-6 pb-6 animate-fade-in">
           <div className="flex-1 space-y-2">
             {navItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -148,8 +148,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center gap-4 px-5 py-4 rounded-xl text-base font-semibold ${
                     isActive 
-                      ? "bg-indigo-500/10 text-indigo-300"
-                      : "text-slate-400 hover:bg-white/5"
+                      ? "bg-blue-500 text-white"
+                      : "text-slate-600 hover:bg-slate-100"
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -158,13 +158,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               );
             })}
           </div>
+          
+          <div className="mb-4">
+             <Link href="/portfolio/builder" onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center justify-center gap-2 py-3 bg-[#0055d4] text-white rounded-full font-semibold text-sm transition-colors">
+              <span className="text-lg leading-none">+</span> 새 포트폴리오 만들기
+            </Link>
+          </div>
 
           <button
             onClick={() => {
               setIsMobileMenuOpen(false);
               logout();
             }}
-            className="flex items-center gap-4 px-5 py-4 text-red-400 hover:bg-red-500/5 rounded-xl text-base font-semibold mt-auto"
+            className="flex items-center gap-4 px-5 py-4 text-red-500 hover:bg-red-50 rounded-xl text-base font-semibold mt-auto border border-red-100"
           >
             <LogOut className="w-5 h-5" />
             로그아웃
@@ -173,8 +179,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 z-10 relative overflow-y-auto max-h-screen">
-        <div className="p-6 md:p-10 max-w-6xl w-full mx-auto">
+      <main className="flex-1 flex flex-col min-w-0 z-10 relative overflow-y-auto max-h-screen bg-slate-50">
+        <div className="p-6 md:p-10 w-full mx-auto">
           {children}
         </div>
       </main>

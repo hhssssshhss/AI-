@@ -16,7 +16,7 @@ export default function Home() {
 
   const handleStart = () => {
     if (isLoggedIn) {
-      router.push("/activities");
+      router.push("/dashboard");
     } else {
       router.push("/login");
     }

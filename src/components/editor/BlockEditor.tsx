@@ -71,10 +71,10 @@ export default function BlockEditor({ blocks, targetJob, onUpdateBlocks }: Block
   };
 
   const blockTypeMeta = {
-    title: { label: "포트폴리오 제목", icon: LayoutGrid, color: "text-indigo-400 border-indigo-500/20 bg-indigo-500/5" },
-    intro: { label: "자기소개", icon: AlignLeft, color: "text-purple-400 border-purple-500/20 bg-purple-500/5" },
-    activity: { label: "활동 설명", icon: Briefcase, color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/5" },
-    summary: { label: "핵심 성과 요약", icon: FileText, color: "text-amber-400 border-amber-500/20 bg-amber-500/5" }
+    title: { label: "포트폴리오 제목", icon: LayoutGrid, color: "text-blue-600 border-blue-200 bg-blue-50" },
+    intro: { label: "자기소개", icon: AlignLeft, color: "text-purple-600 border-purple-200 bg-purple-50" },
+    activity: { label: "활동 설명", icon: Briefcase, color: "text-emerald-600 border-emerald-200 bg-emerald-50" },
+    summary: { label: "핵심 성과 요약", icon: FileText, color: "text-amber-600 border-amber-200 bg-amber-50" }
   };
 
   return (
@@ -88,7 +88,7 @@ export default function BlockEditor({ blocks, targetJob, onUpdateBlocks }: Block
         return (
           <div 
             key={block.id}
-            className="group relative bg-slate-900/40 border border-white/5 hover:border-white/10 rounded-2xl p-6 transition-all duration-200"
+            className="group relative bg-white border border-slate-200 hover:border-slate-300 rounded-2xl p-6 transition-all duration-200 shadow-sm"
           >
             {/* Header controls */}
             <div className="flex items-center justify-between mb-3.5">
@@ -102,7 +102,7 @@ export default function BlockEditor({ blocks, targetJob, onUpdateBlocks }: Block
                   type="button"
                   disabled={idx === 0}
                   onClick={() => moveBlock(idx, "up")}
-                  className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-slate-800"
+                  className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg hover:text-slate-800 transition-all disabled:opacity-30 disabled:hover:bg-slate-100"
                 >
                   <ArrowUp className="w-3.5 h-3.5" />
                 </button>
@@ -110,7 +110,7 @@ export default function BlockEditor({ blocks, targetJob, onUpdateBlocks }: Block
                   type="button"
                   disabled={idx === blocks.length - 1}
                   onClick={() => moveBlock(idx, "down")}
-                  className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-slate-800"
+                  className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg hover:text-slate-800 transition-all disabled:opacity-30 disabled:hover:bg-slate-100"
                 >
                   <ArrowDown className="w-3.5 h-3.5" />
                 </button>
@@ -119,8 +119,8 @@ export default function BlockEditor({ blocks, targetJob, onUpdateBlocks }: Block
                   onClick={() => setEditingBlockId(isEditing ? null : block.id)}
                   className={`p-1.5 rounded-lg transition-all flex items-center gap-1 text-xs font-semibold ${
                     isEditing 
-                      ? "bg-indigo-600 text-white" 
-                      : "bg-slate-800 hover:bg-slate-700 text-indigo-400 hover:text-indigo-300"
+                      ? "bg-[#0055d4] text-white" 
+                      : "bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700"
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -131,17 +131,17 @@ export default function BlockEditor({ blocks, targetJob, onUpdateBlocks }: Block
 
             {/* AI Rewrite Options Panel */}
             {isEditing && (
-              <div className="mb-4 p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-xl space-y-3 animate-in slide-in-from-top-2 duration-200">
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-xl space-y-3 animate-in slide-in-from-top-2 duration-200">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-xs font-semibold text-indigo-300">AI 재작성 모드:</span>
-                  <div className="flex rounded-lg bg-black/40 p-1 border border-white/5">
+                  <span className="text-xs font-semibold text-blue-700">AI 재작성 모드:</span>
+                  <div className="flex rounded-lg bg-white p-1 border border-slate-200">
                     <button
                       type="button"
                       onClick={() => setRewriteOption("concise")}
                       className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                         rewriteOption === "concise"
-                          ? "bg-indigo-600 text-white shadow-md"
-                          : "text-slate-400 hover:text-slate-200"
+                          ? "bg-[#0055d4] text-white shadow-sm"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                       }`}
                     >
                       더 간결하게
@@ -151,8 +151,8 @@ export default function BlockEditor({ blocks, targetJob, onUpdateBlocks }: Block
                       onClick={() => setRewriteOption("highlight")}
                       className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                         rewriteOption === "highlight"
-                          ? "bg-indigo-600 text-white shadow-md"
-                          : "text-slate-400 hover:text-slate-200"
+                          ? "bg-[#0055d4] text-white shadow-sm"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                       }`}
                     >
                       성과 강조
@@ -162,8 +162,8 @@ export default function BlockEditor({ blocks, targetJob, onUpdateBlocks }: Block
                       onClick={() => setRewriteOption("keyword")}
                       className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                         rewriteOption === "keyword"
-                          ? "bg-indigo-600 text-white shadow-md"
-                          : "text-slate-400 hover:text-slate-200"
+                          ? "bg-[#0055d4] text-white shadow-sm"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                       }`}
                     >
                       키워드 반영
@@ -174,7 +174,7 @@ export default function BlockEditor({ blocks, targetJob, onUpdateBlocks }: Block
                     type="button"
                     disabled={isLoading}
                     onClick={() => handleRewrite(block.id, block.content)}
-                    className="ml-auto flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-800 text-white disabled:text-slate-500 font-semibold rounded-lg text-xs transition-all"
+                    className="ml-auto flex items-center gap-1.5 px-4 py-1.5 bg-[#0055d4] hover:bg-blue-700 disabled:bg-slate-300 text-white disabled:text-slate-500 font-semibold rounded-lg text-xs transition-all"
                   >
                     {isLoading ? (
                       <>
@@ -199,14 +199,14 @@ export default function BlockEditor({ blocks, targetJob, onUpdateBlocks }: Block
                 onChange={(e) => handleTextChange(block.id, e.target.value)}
                 disabled={isLoading}
                 rows={block.type === "title" ? 1 : block.type === "intro" ? 3 : 5}
-                className={`w-full bg-slate-950/60 border border-white/5 hover:border-white/10 focus:border-indigo-500/50 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-gray-600 focus:outline-none transition-all resize-none custom-scrollbar leading-relaxed ${
+                className={`w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-blue-500 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition-all resize-none custom-scrollbar leading-relaxed ${
                   block.type === "title" ? "text-lg font-bold" : ""
-                } disabled:opacity-50`}
+                } disabled:opacity-50 focus:bg-white focus:ring-1 focus:ring-blue-500 shadow-inner`}
                 placeholder={`${meta.label} 내용을 입력하세요...`}
               />
               {isLoading && (
-                <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs rounded-xl flex items-center justify-center">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-indigo-400 animate-pulse">
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 animate-pulse bg-white px-4 py-2 rounded-full shadow-sm">
                     <RefreshCw className="w-4 h-4 animate-spin" />
                     AI가 문장을 교정하는 중...
                   </div>

@@ -18,12 +18,13 @@ import {
   CheckCircle2,
   Trash2
 } from "lucide-react";
+import { fetchUserActivities, createActivity, deleteActivityAction } from "@/app/actions/activities";
 
 function ActivitiesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { driveLinked, driveAccessToken, setDriveLinked } = useAuthStore();
-  const { activities, addActivity, updateActivity, removeActivity } = useActivitiesStore();
+  const { driveLinked, driveAccessToken, setDriveLinked, userId } = useAuthStore();
+  const { activities, addActivity, updateActivity, removeActivity, setActivities } = useActivitiesStore();
 
   // Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,15 +48,34 @@ function ActivitiesContent() {
   useEffect(() => {
     const driveToken = searchParams.get("driveToken");
     if (driveToken) {
-      setDriveLinked(driveToken);
+      setDriveLinked(true, driveToken);
       // URL 파라미터 정리
       const newUrl = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
   }, [searchParams, setDriveLinked]);
 
+  // DB에서 유저 활동 불러오기
+  useEffect(() => {
+    if (userId) {
+      fetchUserActivities(userId).then((data: any) => {
+        // 날짜 직렬화 변환 등 필요한 매핑
+        const mapped = data.map((d: any) => ({
+          ...d,
+          periodStart: d.periodStart ? new Date(d.periodStart).toISOString().split('T')[0] : undefined,
+          periodEnd: d.periodEnd ? new Date(d.periodEnd).toISOString().split('T')[0] : undefined,
+        }));
+        setActivities(mapped);
+      }).catch(console.error);
+    }
+  }, [userId, setActivities]);
+
   const handleOAuthConnect = () => {
-    router.push("/api/google/oauth");
+    if (!userId) {
+      setErrorMsg("로그인이 필요합니다.");
+      return;
+    }
+    router.push(`/api/google/oauth?userId=${userId}`);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,6 +99,16 @@ function ActivitiesContent() {
 
   const removeSelectedFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDeleteActivity = async (id: string) => {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    try {
+      await deleteActivityAction(id);
+      removeActivity(id);
+    } catch (err) {
+      alert("삭제 중 오류가 발생했습니다.");
+    }
   };
 
   // Google Drive 폴더 생성/조회 및 파일 업로드 헬퍼
@@ -196,23 +226,31 @@ function ActivitiesContent() {
 
       const { activity: resultActivity } = await res.json();
       
-      // Zustand 스토어 업데이트
-      updateActivity(tempId, {
-        summary: resultActivity.summary,
-        role: resultActivity.role,
-        keywords: resultActivity.keywords,
-        status: "READY",
-        files: [
-          {
-            id: "file_" + Math.random().toString(36).substring(2, 9),
+      // DB에 최종 활동 데이터 저장
+      if (userId) {
+        const dbActivity = await createActivity(userId, {
+          title: activityTitle,
+          summary: resultActivity.summary,
+          role: resultActivity.role,
+          keywords: resultActivity.keywords,
+          periodStart: startDate,
+          periodEnd: endDate,
+          files: [{
             googleDriveFileId,
             fileName: file.name,
             mimeType: file.type,
-            sizeBytes: file.size,
-            parseStatus: "DONE"
-          }
-        ]
-      });
+            sizeBytes: file.size
+          }]
+        });
+
+        // Zustand 스토어 업데이트 (임시 항목 교체)
+        removeActivity(tempId);
+        addActivity({
+          ...dbActivity,
+          periodStart: dbActivity.periodStart ? new Date(dbActivity.periodStart).toISOString().split('T')[0] : undefined,
+          periodEnd: dbActivity.periodEnd ? new Date(dbActivity.periodEnd).toISOString().split('T')[0] : undefined,
+        });
+      }
 
     } catch (err) {
       console.error(err);
@@ -261,34 +299,44 @@ function ActivitiesContent() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-              활동 관리
-              <Sparkles className="w-5 h-5 text-indigo-400" />
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2 tracking-tight">
+              활동 내역 라이브러리
             </h1>
-            <p className="text-slate-400 text-sm mt-1">
-              자료를 업로드하여 AI 분석 카드를 만들고 인사이트 대화를 시작해 보세요.
+            <p className="text-slate-500 text-sm mt-1">
+              나의 전문 경험을 관리하고 추적하세요.
             </p>
           </div>
 
-          {driveLinked ? (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold rounded-xl text-sm shadow-[0_4px_15px_rgba(99,102,241,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <FolderPlus className="w-4 h-4" />
-              새 활동 등록
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              </span>
+              <input type="text" placeholder="활동 검색..." className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-64 bg-white" />
+            </div>
+            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 rounded-lg text-sm font-semibold text-slate-700">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+              필터
             </button>
-          ) : (
-            <button
-              onClick={handleOAuthConnect}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/15 text-white font-semibold rounded-xl text-sm border border-white/10 transition-all active:scale-[0.98]"
-            >
-              <CloudLightning className="w-4 h-4 text-amber-400" />
-              구글 드라이브 연동하기
-            </button>
-          )}
+            {driveLinked ? (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-[#0055d4] hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition-all"
+              >
+                <span className="text-lg leading-none">+</span> 새 기록
+              </button>
+            ) : (
+              <button
+                onClick={handleOAuthConnect}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-lg text-sm transition-all"
+              >
+                <CloudLightning className="w-4 h-4 text-amber-400" />
+                드라이브 연동
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Global Error Banner */}
@@ -380,21 +428,19 @@ function ActivitiesContent() {
 
         {/* Activities Grid */}
         {activities.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-slate-900/20 border border-dashed border-white/10 rounded-3xl text-center">
-            <UploadCloud className="w-12 h-12 text-slate-600 mb-4" />
-            <h3 className="font-bold text-lg text-slate-200">등록된 활동이 없습니다</h3>
-            <p className="text-sm text-slate-500 max-w-sm mt-1">
-              {driveLinked 
-                ? "상단의 '새 활동 등록' 버튼을 눌러 프로젝트, 인턴, 공모전 등 커리어 관련 파일을 업로드해 보세요."
-                : "서비스를 이용하려면 먼저 구글 드라이브 연동을 진행해 주세요."}
+          <div 
+            onClick={() => driveLinked ? setIsModalOpen(true) : handleOAuthConnect()}
+            className="flex flex-col items-center justify-center py-24 bg-white border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-2xl text-center cursor-pointer transition-colors max-w-sm"
+          >
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+              <span className="text-2xl text-blue-600 font-light">+</span>
+            </div>
+            <h3 className="font-bold text-slate-800">새 활동 추가</h3>
+            <p className="text-xs text-slate-500 mt-2 max-w-[200px] leading-relaxed">
+              새로운 프로젝트, 워크샵 또는 학습 경험을 기록하세요.
             </p>
             {!driveLinked && (
-              <button
-                onClick={handleOAuthConnect}
-                className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl"
-              >
-                드라이브 연동하기
-              </button>
+              <span className="mt-4 text-xs font-semibold text-blue-600">먼저 구글 드라이브를 연동해주세요.</span>
             )}
           </div>
         ) : (
@@ -402,116 +448,71 @@ function ActivitiesContent() {
             {activities.map((act) => (
               <div 
                 key={act.id} 
-                className="bg-slate-900/50 backdrop-blur-sm border border-white/5 rounded-2xl p-6 flex flex-col justify-between hover:border-white/10 hover:shadow-xl transition-all duration-300 group"
+                className="bg-white border border-slate-200 rounded-2xl flex flex-col hover:shadow-md transition-shadow overflow-hidden relative cursor-pointer"
+                onClick={() => act.status === "READY" && router.push(`/activities/${act.id}/interview`)}
               >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border ${
-                      act.status === "READY" 
-                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                        : act.status === "PROCESSING"
-                        ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
-                        : act.status === "NEEDS_MANUAL_INPUT"
-                        ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                        : "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                    }`}>
-                      {act.status === "READY" && "분석 완료"}
-                      {act.status === "PROCESSING" && "구조화 중..."}
-                      {act.status === "NEEDS_MANUAL_INPUT" && "수동 입력 필요"}
-                      {act.status === "FAILED" && "파싱 실패"}
-                    </span>
+                {/* Mock Image Placeholder */}
+                <div className="h-40 bg-slate-100 w-full relative">
+                  <div className="absolute top-3 left-3 px-2 py-1 bg-white/90 backdrop-blur rounded-full text-[10px] font-semibold text-slate-700 flex items-center gap-1.5 shadow-sm">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                    프로젝트
+                  </div>
+                  <div className="absolute top-3 right-3">
+                    {act.status === "READY" && (
+                      <span className="px-2.5 py-1 bg-[#0055d4] text-white rounded-full text-[10px] font-bold shadow-sm">완료됨</span>
+                    )}
+                    {act.status === "PROCESSING" && (
+                      <span className="px-2.5 py-1 bg-blue-400 text-white rounded-full text-[10px] font-bold shadow-sm">진행 중</span>
+                    )}
+                    {act.status === "NEEDS_MANUAL_INPUT" && (
+                      <span className="px-2.5 py-1 bg-amber-500 text-white rounded-full text-[10px] font-bold shadow-sm">입력 필요</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-5 flex flex-col flex-1">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="font-bold text-lg text-slate-900 line-clamp-1">
+                      {act.title}
+                    </h3>
                     <button
-                      onClick={() => removeActivity(act.id)}
-                      className="text-slate-600 hover:text-red-400 transition-colors"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteActivity(act.id); }}
+                      className="text-slate-400 hover:text-red-500 p-1"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
 
-                  <h3 className="font-bold text-lg text-white mb-2 line-clamp-1 group-hover:text-indigo-400 transition-colors">
-                    {act.title}
-                  </h3>
-
-                  {act.periodStart && (
-                    <p className="text-xs text-slate-400 flex items-center gap-1.5 mb-4">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {act.periodStart} ~ {act.periodEnd || "진행 중"}
+                  {act.status === "READY" && (
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-4">
+                      {act.summary}
                     </p>
                   )}
-
-                  {act.status === "READY" && (
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wide">핵심 역할</p>
-                        <p className="text-sm text-slate-200 line-clamp-1">{act.role || "지정되지 않음"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wide">활동 요약</p>
-                        <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">{act.summary}</p>
-                      </div>
-                      {act.keywords && act.keywords.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {act.keywords.map((kw, i) => (
-                            <span key={i} className="px-2 py-0.5 bg-white/5 text-[10px] text-slate-300 rounded">
-                              #{kw}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   {act.status === "PROCESSING" && (
-                    <div className="space-y-4 pt-2">
-                      <div className="h-4 bg-white/5 rounded w-3/4 animate-pulse"></div>
-                      <div className="space-y-2">
-                        <div className="h-3 bg-white/5 rounded animate-pulse"></div>
-                        <div className="h-3 bg-white/5 rounded w-5/6 animate-pulse"></div>
-                      </div>
+                    <div className="space-y-2 mb-4 pt-1">
+                      <div className="h-3 bg-slate-100 rounded w-full animate-pulse"></div>
+                      <div className="h-3 bg-slate-100 rounded w-2/3 animate-pulse"></div>
                     </div>
                   )}
-
                   {act.status === "NEEDS_MANUAL_INPUT" && (
-                    <div className="pt-4 text-center">
-                      <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-                      <p className="text-xs text-slate-300">내용을 추출하지 못했습니다.</p>
-                      <button
-                        onClick={() => {
-                          setManualInputActivityId(act.id);
-                          setErrorMsg("");
-                        }}
-                        className="mt-3 text-xs text-indigo-400 font-semibold hover:underline"
-                      >
-                        수동 정보 입력하기
-                      </button>
-                    </div>
+                    <p className="text-xs text-amber-600 mb-4 font-medium">데이터 추출 실패. 수동으로 정보를 입력해주세요.</p>
                   )}
-                </div>
 
-                <div className="pt-6 mt-auto">
-                  {act.status === "READY" && (
-                    <button
-                      onClick={() => router.push(`/activities/${act.id}/interview`)}
-                      className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-semibold text-xs rounded-xl border border-indigo-500/20 hover:border-indigo-500/40 transition-all"
-                    >
-                      {act.interview?.status === "COMPLETED" ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          인터뷰 완료 (다시하기)
-                        </>
-                      ) : act.interview?.status === "IN_PROGRESS" ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
-                          인터뷰 이어하기
-                        </>
-                      ) : (
-                        <>
-                          AI 인터뷰 시작
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </>
-                      )}
-                    </button>
-                  )}
+                  <div className="mt-auto pt-4 flex items-center justify-between border-t border-slate-100">
+                    <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {act.periodStart ? `${act.periodStart} - ${act.periodEnd || "현재"}` : "일정 미정"}
+                    </div>
+                    {act.keywords && act.keywords.length > 0 && (
+                      <div className="flex gap-1.5">
+                        {act.keywords.slice(0, 2).map((kw, i) => (
+                          <span key={i} className="px-2 py-0.5 bg-slate-100 text-[10px] text-slate-600 font-medium rounded-md">
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -643,8 +644,8 @@ function ActivitiesContent() {
 export default function ActivitiesPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
       </div>
     }>
       <ActivitiesContent />
