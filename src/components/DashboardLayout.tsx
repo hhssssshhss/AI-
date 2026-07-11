@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { Suspense } from "react";
+import { getUserById } from "@/app/actions/auth";
 
 function AuthSync() {
   const searchParams = useSearchParams();
@@ -31,16 +32,17 @@ function AuthSync() {
     if (!mounted) return;
     const loggedInId = searchParams?.get("loggedInUserId");
     if (loggedInId && !isLoggedIn) {
-      import("@/app/actions/auth").then(({ getUserById }) => {
-        getUserById(loggedInId).then(user => {
-          if (user) {
-            useAuthStore.getState().login(user);
-            const newUrl = window.location.pathname;
-            window.history.replaceState({}, document.title, newUrl);
-          } else {
-            router.replace("/login");
-          }
-        });
+      getUserById(loggedInId).then(user => {
+        if (user) {
+          useAuthStore.getState().login(user);
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        } else {
+          router.replace("/login");
+        }
+      }).catch(err => {
+        console.error("Failed to fetch user:", err);
+        router.replace("/login");
       });
     } else if (!isLoggedIn && !loggedInId) {
       router.replace("/login");
