@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useActivitiesStore, QaItem } from "@/store";
+import { useActivitiesStore, usePortfolioStore, QaItem } from "@/store";
 import DashboardLayout from "@/components/DashboardLayout";
 import { 
   Send, 
@@ -271,10 +271,12 @@ export default function InterviewPage() {
 
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState(false);
 
   const finishInterview = async (lastAnswer: string) => {
     setIsFinished(true);
     setIsGenerating(true);
+    setGenerationError(false);
 
     // Q&A 데이터 구조 구성
     const qaItems: QaItem[] = [];
@@ -334,8 +336,6 @@ export default function InterviewPage() {
 
         if (res.ok) {
           const { content } = await res.json();
-          // usePortfolioStore()에서 addPage 호출. (Dynamic import로 직접 접근은 어려우니 zustand 스토어를 import 하여 사용합니다)
-          const { usePortfolioStore } = await import("@/store");
           usePortfolioStore.getState().addPage({
             id: `page_${Date.now()}`,
             activityId: id,
@@ -343,10 +343,13 @@ export default function InterviewPage() {
             period: activity.periodStart ? `${new Date(activity.periodStart).toLocaleDateString()} ~ ${activity.periodEnd ? new Date(activity.periodEnd).toLocaleDateString() : '진행중'}` : '진행 기간 없음',
             content
           });
+        } else {
+          throw new Error("API 응답 에러 (타임아웃 가능성)");
         }
       }
     } catch (err) {
       console.error("포트폴리오 자동 생성 실패:", err);
+      setGenerationError(true);
     } finally {
       setIsGenerating(false);
     }
@@ -508,6 +511,47 @@ export default function InterviewPage() {
                     <p className="text-slate-500 mb-6 max-w-xs">
                       AI가 인터뷰 내용을 바탕으로 포트폴리오를 멋지게 작성하고 있습니다. 잠시만 기다려주세요!
                     </p>
+                  </>
+                ) : generationError ? (
+                  <>
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                      <div className="w-8 h-8 rounded-full bg-red-500"></div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-2">생성에 실패했습니다</h3>
+                    <p className="text-slate-500 mb-6 max-w-xs">
+                      서버 지연 등의 문제로 포트폴리오 초안 생성이 완료되지 못했습니다. 다시 시도해주세요.
+                    </p>
+                    <div className="flex gap-3">
+                      <button onClick={restartInterview} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50">인터뷰 다시하기</button>
+                      <button onClick={() => {
+                        if (!activity || !activity.interview) return;
+                        setIsGenerating(true);
+                        setGenerationError(false);
+                        fetch("/api/portfolio/auto-generate", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            activityTitle: activity.title,
+                            qaItems: activity.interview.qaItems
+                          })
+                        }).then(async res => {
+                          if (res.ok) {
+                            const { content } = await res.json();
+                            usePortfolioStore.getState().addPage({
+                              id: `page_${Date.now()}`,
+                              activityId: id,
+                              activityTitle: activity.title,
+                              period: activity.periodStart ? `${new Date(activity.periodStart).toLocaleDateString()} ~ ${activity.periodEnd ? new Date(activity.periodEnd).toLocaleDateString() : '진행중'}` : '진행 기간 없음',
+                              content
+                            });
+                            setIsGenerating(false);
+                          } else throw new Error();
+                        }).catch(() => {
+                          setGenerationError(true);
+                          setIsGenerating(false);
+                        });
+                      }} className="px-5 py-2.5 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 shadow-md">다시 생성 시도</button>
+                    </div>
                   </>
                 ) : (
                   <>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGeminiModel } from "@/lib/gemini";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // 60 seconds (Hobby plan maximum for App Router APIs)
 
 const PORTFOLIO_PROMPT = `당신은 취업 준비생의 포트폴리오를 대필해주는 전문 에디터입니다.
 다음은 사용자가 활동에 대해 진행한 AI 인터뷰 Q&A 기록입니다.
