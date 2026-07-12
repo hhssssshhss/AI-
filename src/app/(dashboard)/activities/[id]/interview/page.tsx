@@ -270,8 +270,11 @@ export default function InterviewPage() {
   };
 
 
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const finishInterview = async (lastAnswer: string) => {
     setIsFinished(true);
+    setIsGenerating(true);
 
     // Q&A 데이터 구조 구성
     const qaItems: QaItem[] = [];
@@ -344,6 +347,8 @@ export default function InterviewPage() {
       }
     } catch (err) {
       console.error("포트폴리오 자동 생성 실패:", err);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -494,17 +499,31 @@ export default function InterviewPage() {
             {/* Finished Overlay */}
             {isFinished && (
               <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <CheckCircle2 className="w-8 h-8 text-blue-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">활동 인터뷰 완료!</h3>
-                <p className="text-slate-500 mb-6 max-w-xs">
-                  작성해주신 상세 답변들을 기반으로 AI 포트폴리오 초안이 성공적으로 생성되었습니다.
-                </p>
-                <div className="flex gap-3">
-                  <button onClick={restartInterview} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50">다시하기</button>
-                  <button onClick={() => router.push("/portfolio")} className="px-5 py-2.5 bg-[#0055d4] text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">✨ 자동 완성된 포트폴리오 보러가기</button>
-                </div>
+                {isGenerating ? (
+                  <>
+                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                      <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-2">포트폴리오 생성 중...</h3>
+                    <p className="text-slate-500 mb-6 max-w-xs">
+                      AI가 인터뷰 내용을 바탕으로 포트폴리오를 멋지게 작성하고 있습니다. 잠시만 기다려주세요!
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                      <CheckCircle2 className="w-8 h-8 text-blue-600" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-2">포트폴리오 자동 생성 완료!</h3>
+                    <p className="text-slate-500 mb-6 max-w-xs">
+                      작성해주신 상세 답변들을 기반으로 AI 포트폴리오 초안이 성공적으로 생성되었습니다.
+                    </p>
+                    <div className="flex gap-3">
+                      <button onClick={restartInterview} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50">다시하기</button>
+                      <button onClick={() => router.push("/portfolio")} className="px-5 py-2.5 bg-[#0055d4] text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">✨ 자동 완성된 포트폴리오 보러가기</button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
