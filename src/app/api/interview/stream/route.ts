@@ -16,11 +16,12 @@ const DEEP_DIVE_PROMPT = `당신은 매우 깐깐하고 엄격한 10년 차 시�
 친절하기보다는 날카롭고 전문적인 톤을 유지하세요.`;
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { activity, conversationHistory, category } = body;
+  try {
+    const body = await req.json();
+    const { activity, conversationHistory, category } = body;
 
-  // conversationHistory: Array<{ role: "user"|"model", parts: [{text: string}] }>
-  const systemContext = `
+    // conversationHistory: Array<{ role: "user"|"model", parts: [{text: string}] }>
+    const systemContext = `
 활동 정보:
 - 제목: ${activity.title}
 - 요약: ${activity.summary}
@@ -30,60 +31,71 @@ export async function POST(req: NextRequest) {
 현재 질문 카테고리: ${category} (PROBLEM=문제상황, RESULT=성과, LESSON=배운점, DEEP_DIVE=압박 꼬리질문)
 `;
 
-  const activeSystemPrompt = category === "DEEP_DIVE" ? DEEP_DIVE_PROMPT : BASE_SYSTEM_PROMPT;
+    const activeSystemPrompt = category === "DEEP_DIVE" ? DEEP_DIVE_PROMPT : BASE_SYSTEM_PROMPT;
 
-  const model = getGeminiModel();
-  const chat = model.startChat({
-    history: [
-      {
-        role: "user",
-        parts: [{ text: activeSystemPrompt + "\n\n" + systemContext }],
-      },
-      {
-        role: "model",
-        parts: [{ text: "네, 이해했습니다. 인터뷰를 시작하겠습니다." }],
-      },
-      ...(conversationHistory?.length > 0 ? [{ role: "user" as const, parts: [{ text: "인터뷰를 시작해 주세요." }] }] : []),
-      ...(conversationHistory || []),
-    ],
-  });
+    const model = getGeminiModel();
+    const chat = model.startChat({
+      history: [
+        {
+          role: "user",
+          parts: [{ text: activeSystemPrompt + "\n\n" + systemContext }],
+        },
+        {
+          role: "model",
+          parts: [{ text: "네, 이해했습니다. 인터뷰를 시작하겠습니다." }],
+        },
+        ...(conversationHistory?.length > 0 ? [{ role: "user" as const, parts: [{ text: "인터뷰를 시작해 주세요." }] }] : []),
+        ...(conversationHistory || []),
+      ],
+    });
 
-  const lastUserMessage =
-    body.userMessage || "인터뷰를 시작해주세요.";
+    const lastUserMessage =
+      body.userMessage || "인터뷰를 시작해주세요.";
 
-  const stream = await chat.sendMessageStream(lastUserMessage);
+    const stream = await chat.sendMessageStream(lastUserMessage);
 
-  const encoder = new TextEncoder();
+    const encoder = new TextEncoder();
 
-  const readable = new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const chunk of stream.stream) {
-          const text = chunk.text();
-          if (text) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
-            );
+    const readable = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of stream.stream) {
+            const text = chunk.text();
+            if (text) {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
+              );
+            }
           }
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        } catch (err) {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ error: String(err) })}\n\n`
+            )
+          );
+          controller.close();
         }
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        controller.close();
-      } catch (err) {
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({ error: String(err) })}\n\n`
-          )
-        );
-        controller.close();
-      }
-    },
-  });
+      },
+    });
 
-  return new Response(readable, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+    return new Response(readable, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error: any) {
+    console.error("[/api/interview/stream] Error:", error);
+    // NextResponse는 json() 메서드를 사용하여 오류를 반환합니다.
+    return new Response(
+      JSON.stringify({ error: error?.message || String(error) }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+  }
 }

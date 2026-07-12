@@ -160,6 +160,11 @@ export default function InterviewPage() {
       });
 
       if (!response.ok) {
+        // 백엔드에서 반환한 JSON 에러 메시지를 시도해서 파싱
+        const errData = await response.json().catch(() => null);
+        if (errData && errData.error) {
+          throw new Error(errData.error);
+        }
         throw new Error("질문을 받아오는 데 실패했습니다.");
       }
 
@@ -199,9 +204,16 @@ export default function InterviewPage() {
       setStreamedText("");
       setQuestionCount(prev => prev + 1);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("AI 연결 오류가 발생했습니다. 다시 시도해 주세요.");
+      const errMsg = err?.message || "";
+      if (errMsg.includes("429") || errMsg.includes("Quota") || errMsg.includes("Too Many Requests")) {
+        alert("구글 API 호출 한도를 초과했습니다. 잠시 후(약 1분 뒤) 다시 시도해 주세요.");
+      } else if (errMsg.includes("Safety") || errMsg.includes("safety") || errMsg.includes("blocked")) {
+        alert("안전 필터에 의해 답변이 차단되었습니다. 표현을 순화하여 다시 시도해 주세요.");
+      } else {
+        alert(`AI 연결 오류가 발생했습니다: ${errMsg}`);
+      }
     } finally {
       setIsAiTyping(false);
     }
