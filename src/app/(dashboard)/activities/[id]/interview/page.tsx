@@ -37,6 +37,12 @@ export default function InterviewPage() {
   const [questionCount, setQuestionCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
 
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // 음성 인식 관련
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -380,6 +386,8 @@ export default function InterviewPage() {
 
   const userAnswersCount = messages.filter((m) => m.sender === "user").length;
   const progressPercent = Math.min(100, Math.round((userAnswersCount / 6) * 100));
+
+  if (!isMounted) return null;
 
   return (
     <DashboardLayout>
