@@ -11,9 +11,11 @@ import {
   FileEdit,
   Award,
   Users,
-  Activity as ActivityIcon
+  Activity as ActivityIcon,
+  Star
 } from "lucide-react";
 import Link from "next/link";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function DashboardPage() {
   const { userName } = useAuthStore();
@@ -23,10 +25,44 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // Dynamic calculations
-  const totalActivities = activities.length;
-  const completedActivities = activities.filter(a => a.interview?.status === "COMPLETED").length;
-  const completionRate = totalActivities === 0 ? 0 : Math.round((completedActivities / totalActivities) * 100);
+  const currentYear = new Date().getFullYear();
+
+  // 올해의 활동 
+  const thisYearActivities = activities.filter(a => {
+    const year = a.periodStart ? new Date(a.periodStart).getFullYear() : currentYear;
+    return year === currentYear;
+  });
+  const thisYearCount = thisYearActivities.length;
+
+  // 올해 활동 추이 (월별)
+  const thisYearData = Array.from({ length: 12 }, (_, i) => {
+    const month = i + 1;
+    const count = thisYearActivities.filter(a => {
+      const m = a.periodStart ? new Date(a.periodStart).getMonth() + 1 : new Date().getMonth() + 1;
+      return m === month;
+    }).length;
+    return { name: `${month}월`, count };
+  });
+
+  // 전체 활동 추이 (연도별 누적)
+  let startYear = currentYear - 5;
+  if (activities.length > 0) {
+    const years = activities.map(a => a.periodStart ? new Date(a.periodStart).getFullYear() : currentYear).filter(y => !isNaN(y));
+    if (years.length > 0) {
+      startYear = Math.min(...years, startYear);
+    }
+  }
+
+  const totalTrendData = [];
+  let cumulativeCount = 0;
+  for (let year = startYear; year <= currentYear; year++) {
+    const countThisYear = activities.filter(a => {
+      const y = a.periodStart ? new Date(a.periodStart).getFullYear() : currentYear;
+      return y === year;
+    }).length;
+    cumulativeCount += countThisYear;
+    totalTrendData.push({ name: `${year}`, count: cumulativeCount });
+  }
 
   if (!mounted) return null;
 
@@ -35,82 +71,49 @@ export default function DashboardPage() {
       <div className="flex flex-col lg:flex-row gap-8">
         
         {/* Left Column (Main Content) */}
-        <div className="flex-1 space-y-8">
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              환영합니다, {name}님!
-            </h1>
-            <p className="text-slate-500 mt-1 font-medium">최근 전문성 개발 요약입니다.</p>
+        <div className="flex-1 space-y-6">
+          {/* 올해의 활동 Card */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm relative flex flex-col items-center justify-center">
+            <div className="absolute top-6 right-6">
+              <Star className="w-6 h-6 text-blue-600" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-500 mb-2">올해의 활동</h3>
+            <span className="text-6xl font-extrabold text-blue-600">{thisYearCount}</span>
           </div>
 
-          {/* Metric Cards */}
+          {/* Charts Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Completion Rate */}
+            {/* 올해 활동 추이 */}
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                  <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                </div>
-                <h3 className="font-bold text-slate-700">인터뷰 완료율</h3>
-              </div>
-              <div className="flex items-end justify-between mb-4">
-                <span className="text-4xl font-extrabold text-slate-900">{completionRate}%</span>
-                {totalActivities > 0 && <span className="text-sm font-semibold text-slate-500">{completedActivities} / {totalActivities} 완료</span>}
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: `${completionRate}%` }}></div>
+              <h3 className="font-bold text-slate-700 mb-6 text-sm">올해 활동 추이</h3>
+              <div className="h-48 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={thisYearData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} allowDecimals={false} />
+                    <Tooltip cursor={{ stroke: '#cbd5e1', strokeWidth: 1 }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Line type="monotone" dataKey="count" stroke="#0055d4" strokeWidth={2} dot={{ r: 3, fill: '#fff', stroke: '#0055d4', strokeWidth: 2 }} activeDot={{ r: 5, fill: '#0055d4', stroke: '#fff', strokeWidth: 2 }} />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Total Activities */}
+            {/* 전체 활동 추이 */}
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
-                  <Calendar className="w-4 h-4 text-orange-500" />
-                </div>
-                <h3 className="font-bold text-slate-700">전체 활동 개수</h3>
+              <h3 className="font-bold text-slate-700 mb-6 text-sm">[전체 활동 추이]</h3>
+              <div className="h-48 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={totalTrendData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} orientation="right" dx={10} allowDecimals={false} />
+                    <Tooltip cursor={{ stroke: '#cbd5e1', strokeWidth: 1 }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Line type="monotone" dataKey="count" stroke="#0055d4" strokeWidth={2} dot={{ r: 3, fill: '#fff', stroke: '#0055d4', strokeWidth: 2 }} activeDot={{ r: 5, fill: '#0055d4', stroke: '#fff', strokeWidth: 2 }} />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-              <div className="flex items-end justify-between mb-2">
-                <span className="text-4xl font-extrabold text-slate-900">{totalActivities}</span>
-              </div>
-              <p className="text-sm text-slate-500">항목 기록됨</p>
             </div>
-          </div>
-
-          {/* Activity Summary Chart */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="font-bold text-slate-800">최근 활동 요약</h3>
-              {totalActivities > 0 && (
-                <Link href="/activities" className="text-xs font-semibold text-blue-600 hover:text-blue-800">모두 보기</Link>
-              )}
-            </div>
-            
-            {totalActivities === 0 ? (
-              <div className="h-48 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
-                <ActivityIcon className="w-8 h-8 text-slate-300 mb-3" />
-                <p className="text-sm font-bold text-slate-600 mb-1">아직 등록된 활동이 없습니다</p>
-                <p className="text-xs text-slate-400 mb-4">첫 번째 활동을 추가하고 포트폴리오를 작성해보세요.</p>
-                <Link href="/activities" className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors">
-                  활동 추가하러 가기
-                </Link>
-              </div>
-            ) : (
-              <div className="h-48 flex items-end justify-between gap-3 border-b border-slate-200 pb-0 px-2">
-                {/* Dynamically generate simple bars for existing activities up to 7 */}
-                {Array.from({ length: 7 }).map((_, i) => {
-                  const hasActivity = i < totalActivities;
-                  const height = hasActivity ? Math.max(30, Math.random() * 80 + 30) : 10;
-                  return (
-                    <div 
-                      key={i} 
-                      className={`w-12 rounded-t-sm transition-all duration-1000 ${hasActivity ? 'bg-blue-500' : 'bg-slate-100'}`} 
-                      style={{ height: `${height}%` }}
-                    ></div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
 
@@ -151,17 +154,6 @@ export default function DashboardPage() {
               <div>
                 <h4 className="font-bold text-sm text-slate-800 mb-1">새 자격증 추가</h4>
                 <p className="text-[11px] text-slate-500 leading-tight">최근 수료한 강의를 기록하여 역량 점수를 높이세요.</p>
-              </div>
-            </div>
-
-            {/* Step 3 */}
-            <div className="bg-white border border-slate-200 rounded-xl p-4 flex gap-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer">
-              <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
-                <Users className="w-5 h-5 text-orange-500" />
-              </div>
-              <div>
-                <h4 className="font-bold text-sm text-slate-800 mb-1">동료 리뷰 요청</h4>
-                <p className="text-[11px] text-slate-500 leading-tight">최신 프로젝트 포트폴리오에 대한 피드백을 요청하세요.</p>
               </div>
             </div>
           </div>
