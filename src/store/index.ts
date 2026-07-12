@@ -180,40 +180,43 @@ export const usePortfolioStore = create<PortfolioState>()(
           if (!state.portfolio) {
             return { portfolio: { id: "port_master", pages: [page] } };
           }
+          const pages = state.portfolio.pages || [];
           // If page for this activity already exists, update it. Otherwise append.
-          const existing = state.portfolio.pages.find(p => p.activityId === page.activityId);
+          const existing = pages.find(p => p.activityId === page.activityId);
           if (existing) {
             return {
               portfolio: {
                 ...state.portfolio,
-                pages: state.portfolio.pages.map(p => p.activityId === page.activityId ? page : p)
+                pages: pages.map(p => p.activityId === page.activityId ? page : p)
               }
             };
           }
           return {
             portfolio: {
               ...state.portfolio,
-              pages: [...state.portfolio.pages, page]
+              pages: [...pages, page]
             }
           };
         }),
       updatePageContent: (pageId, content) =>
         set((state) => {
           if (!state.portfolio) return {};
+          const pages = state.portfolio.pages || [];
           return {
             portfolio: {
               ...state.portfolio,
-              pages: state.portfolio.pages.map(p => p.id === pageId ? { ...p, content } : p)
+              pages: pages.map(p => p.id === pageId ? { ...p, content } : p)
             }
           };
         }),
       deletePage: (pageId) =>
         set((state) => {
           if (!state.portfolio) return {};
+          const pages = state.portfolio.pages || [];
           return {
             portfolio: {
               ...state.portfolio,
-              pages: state.portfolio.pages.filter(p => p.id !== pageId)
+              pages: pages.filter(p => p.id !== pageId)
             }
           };
         })
