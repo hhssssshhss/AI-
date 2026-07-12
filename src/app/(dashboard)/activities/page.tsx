@@ -21,6 +21,11 @@ function ActivitiesContent() {
   const searchParams = useSearchParams();
   const { driveLinked, driveAccessToken, setDriveLinked, userId } = useAuthStore();
   const { activities, addActivity, updateActivity, removeActivity, setActivities } = useActivitiesStore();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -281,6 +286,7 @@ function ActivitiesContent() {
     }
   };
 
+  if (!isMounted) return null;
 
   return (
     <DashboardLayout>

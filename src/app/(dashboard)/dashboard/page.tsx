@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 import { useAuthStore, useActivitiesStore } from "@/store";
 import DashboardLayout from "@/components/DashboardLayout";
 import { 
@@ -18,10 +20,15 @@ export default function DashboardPage() {
   const name = userName || "Alex";
   const { activities } = useActivitiesStore();
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   // Dynamic calculations
   const totalActivities = activities.length;
   const completedActivities = activities.filter(a => a.interview?.status === "COMPLETED").length;
   const completionRate = totalActivities === 0 ? 0 : Math.round((completedActivities / totalActivities) * 100);
+
+  if (!mounted) return null;
 
   return (
     <DashboardLayout>

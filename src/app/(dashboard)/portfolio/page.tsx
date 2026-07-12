@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePortfolioStore } from "@/store";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Sparkles, Edit2, Check, Download, Trash2 } from "lucide-react";
@@ -10,6 +10,12 @@ export default function PortfolioPage() {
   const { portfolio, updatePageContent, deletePage } = usePortfolioStore();
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState<string>("");
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleEditClick = (pageId: string, content: string) => {
     setEditingPageId(pageId);
@@ -22,6 +28,8 @@ export default function PortfolioPage() {
   };
 
   const pages = portfolio?.pages || [];
+
+  if (!mounted) return null;
 
   return (
     <DashboardLayout>
