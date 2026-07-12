@@ -23,7 +23,7 @@ export default function InterviewPage() {
   const { portfolio, addPage } = usePortfolioStore();
 
   const activity = getActivity(id);
-  const hasPortfolioPage = portfolio?.pages.some(p => p.activityId === id) || false;
+  const hasPortfolioPage = portfolio?.pages?.some(p => p.activityId === id) || false;
 
   // 대화 메시지 상태
   // { sender: "ai" | "user", text: string, category?: string }
