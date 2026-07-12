@@ -45,8 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = [
     { name: "대시보드", href: "/dashboard", icon: TrendingUp }, // Temporary icon for dashboard
     { name: "활동 내역", href: "/activities", icon: FolderGit },
-    { name: "포트폴리오", href: "/portfolio/builder", icon: BookOpen },
-    { name: "역량 분석", href: "/portfolio/analysis", icon: TrendingUp },
+    { name: "마스터 포트폴리오", href: "/portfolio", icon: BookOpen },
   ];
 
   return (
@@ -67,7 +66,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Navigation */}
         <nav className="flex-1 space-y-2">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const isActive = pathname === item.href || (pathname.startsWith(item.href + "/") && item.href !== "/portfolio");
             const Icon = item.icon;
             return (
               <Link
@@ -85,13 +84,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             );
           })}
         </nav>
-
-        {/* New Portfolio Button */}
-        <div className="mt-8 mb-6">
-          <Link href="/portfolio/builder" className="w-full flex items-center justify-center gap-2 py-3 bg-[#0055d4] hover:bg-blue-700 text-white rounded-full font-semibold text-sm transition-colors shadow-sm">
-            <span className="text-lg leading-none">+</span> 새 포트폴리오 만들기
-          </Link>
-        </div>
 
         {/* User Card & Logout */}
         <div className="mt-auto pt-4 border-t border-slate-200 flex items-center justify-between">
@@ -158,11 +150,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             })}
           </div>
           
-          <div className="mb-4">
-             <Link href="/portfolio/builder" onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center justify-center gap-2 py-3 bg-[#0055d4] text-white rounded-full font-semibold text-sm transition-colors">
-              <span className="text-lg leading-none">+</span> 새 포트폴리오 만들기
-            </Link>
-          </div>
 
           <button
             onClick={() => {
