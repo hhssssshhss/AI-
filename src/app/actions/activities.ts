@@ -68,7 +68,8 @@ export async function saveInterviewToDB(activityId: string, qaItems: any[]) {
         create: qaItems.map(item => ({
           question: item.question,
           answer: item.answer,
-          category: item.category || "PROBLEM"
+          category: item.category || "PROBLEM",
+          order: item.order || 0
         }))
       }
     },

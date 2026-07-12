@@ -38,7 +38,7 @@ export interface Activity {
 
 export interface QaItem {
   id: string;
-  category: "PROBLEM" | "RESULT" | "LESSON";
+  category: "PROBLEM" | "RESULT" | "DEEP_DIVE" | "LESSON";
   question: string;
   answer?: string;
   keyInsight?: string;
@@ -86,7 +86,7 @@ interface AuthState {
   birthYear: number | null;
   driveLinked: boolean;
   driveAccessToken: string | null;
-  login: (user: { id: string; name: string; birthYear: number; driveLinked: boolean }) => void;
+  login: (user: { id: string; name: string; birthYear: number | null; driveLinked: boolean }) => void;
   logout: () => void;
   setDriveLinked: (linked: boolean, token?: string) => void;
 }
