@@ -200,7 +200,7 @@ export default function InterviewPage() {
 
       // 최종 받아온 질문 추가
       setMessages(prev => [...prev, { sender: "ai", text: accumulatedText }]);
-      speakText(accumulatedText);
+      // speakText(accumulatedText); // 사용자 요청으로 AI 음성 출력 비활성화
       setStreamedText("");
       setQuestionCount(prev => prev + 1);
 
