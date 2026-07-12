@@ -20,8 +20,10 @@ export default function InterviewPage() {
   const router = useRouter();
   const { id } = useParams() as { id: string };
   const { getActivity, updateActivity } = useActivitiesStore();
+  const { portfolio, addPage } = usePortfolioStore();
 
   const activity = getActivity(id);
+  const hasPortfolioPage = portfolio?.pages.some(p => p.activityId === id) || false;
 
   // 대화 메시지 상태
   // { sender: "ai" | "user", text: string, category?: string }
@@ -273,10 +275,45 @@ export default function InterviewPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState(false);
 
-  const finishInterview = async (lastAnswer: string) => {
-    setIsFinished(true);
+  const generatePortfolio = async (qaItems: QaItem[]) => {
+    if (!activity) return;
     setIsGenerating(true);
     setGenerationError(false);
+    try {
+      const res = await fetch("/api/portfolio/auto-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          activityTitle: activity.title,
+          activitySummary: activity.summary,
+          activityRole: activity.role,
+          activityKeywords: activity.keywords,
+          qaItems
+        })
+      });
+
+      if (res.ok) {
+        const { content } = await res.json();
+        addPage({
+          id: `page_${Date.now()}`,
+          activityId: id,
+          activityTitle: activity.title,
+          period: activity.periodStart ? `${new Date(activity.periodStart).toLocaleDateString()} ~ ${activity.periodEnd ? new Date(activity.periodEnd).toLocaleDateString() : '진행중'}` : '진행 기간 없음',
+          content
+        });
+      } else {
+        throw new Error("API 응답 에러 (타임아웃 가능성)");
+      }
+    } catch (err) {
+      console.error("포트폴리오 자동 생성 실패:", err);
+      setGenerationError(true);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const finishInterview = async (lastAnswer: string) => {
+    setIsFinished(true);
 
     // Q&A 데이터 구조 구성
     const qaItems: QaItem[] = [];
@@ -322,36 +359,9 @@ export default function InterviewPage() {
       }
     });
 
-    // 🚀 인터뷰 완료 즉시 포트폴리오 텍스트 자동 생성 트리거
-    try {
-      if (activity) {
-        const res = await fetch("/api/portfolio/auto-generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            activityTitle: activity.title,
-            qaItems
-          })
-        });
-
-        if (res.ok) {
-          const { content } = await res.json();
-          usePortfolioStore.getState().addPage({
-            id: `page_${Date.now()}`,
-            activityId: id,
-            activityTitle: activity.title,
-            period: activity.periodStart ? `${new Date(activity.periodStart).toLocaleDateString()} ~ ${activity.periodEnd ? new Date(activity.periodEnd).toLocaleDateString() : '진행중'}` : '진행 기간 없음',
-            content
-          });
-        } else {
-          throw new Error("API 응답 에러 (타임아웃 가능성)");
-        }
-      }
-    } catch (err) {
-      console.error("포트폴리오 자동 생성 실패:", err);
-      setGenerationError(true);
-    } finally {
-      setIsGenerating(false);
+    // 🚀 인터뷰 완료 즉시 포트폴리오 텍스트 자동 생성 트리거 (아직 포트폴리오가 없을 때만)
+    if (!hasPortfolioPage) {
+      generatePortfolio(qaItems);
     }
   };
 
@@ -523,34 +533,21 @@ export default function InterviewPage() {
                     </p>
                     <div className="flex gap-3">
                       <button onClick={restartInterview} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50">인터뷰 다시하기</button>
-                      <button onClick={() => {
-                        if (!activity || !activity.interview) return;
-                        setIsGenerating(true);
-                        setGenerationError(false);
-                        fetch("/api/portfolio/auto-generate", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            activityTitle: activity.title,
-                            qaItems: activity.interview.qaItems
-                          })
-                        }).then(async res => {
-                          if (res.ok) {
-                            const { content } = await res.json();
-                            usePortfolioStore.getState().addPage({
-                              id: `page_${Date.now()}`,
-                              activityId: id,
-                              activityTitle: activity.title,
-                              period: activity.periodStart ? `${new Date(activity.periodStart).toLocaleDateString()} ~ ${activity.periodEnd ? new Date(activity.periodEnd).toLocaleDateString() : '진행중'}` : '진행 기간 없음',
-                              content
-                            });
-                            setIsGenerating(false);
-                          } else throw new Error();
-                        }).catch(() => {
-                          setGenerationError(true);
-                          setIsGenerating(false);
-                        });
-                      }} className="px-5 py-2.5 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 shadow-md">다시 생성 시도</button>
+                      <button onClick={() => activity?.interview && generatePortfolio(activity.interview.qaItems)} className="px-5 py-2.5 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 shadow-md">다시 생성 시도</button>
+                    </div>
+                  </>
+                ) : !hasPortfolioPage ? (
+                  <>
+                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                      <BookOpen className="w-8 h-8 text-amber-600" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-2">포트폴리오가 아직 없습니다</h3>
+                    <p className="text-slate-500 mb-6 max-w-xs">
+                      인터뷰는 완료되었지만 포트폴리오 초안이 생성되지 않았습니다. 버튼을 눌러 초안을 생성해주세요.
+                    </p>
+                    <div className="flex gap-3">
+                      <button onClick={restartInterview} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50">다시하기</button>
+                      <button onClick={() => activity?.interview && generatePortfolio(activity.interview.qaItems)} className="px-5 py-2.5 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 shadow-md">✨ 포트폴리오 초안 생성하기</button>
                     </div>
                   </>
                 ) : (
