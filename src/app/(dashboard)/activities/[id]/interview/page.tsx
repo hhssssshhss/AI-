@@ -280,11 +280,13 @@ export default function InterviewPage() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const generatePortfolio = async (qaItems: QaItem[]) => {
     if (!activity) return;
     setIsGenerating(true);
     setGenerationError(false);
+    setErrorMsg("");
     try {
       const res = await fetch("/api/portfolio/auto-generate", {
         method: "POST",
@@ -308,11 +310,13 @@ export default function InterviewPage() {
           content
         });
       } else {
-        throw new Error("API 응답 에러 (타임아웃 가능성)");
+        const errData = await res.json();
+        throw new Error(errData.error || "알 수 없는 에러가 발생했습니다.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("포트폴리오 자동 생성 실패:", err);
       setGenerationError(true);
+      setErrorMsg(err.message || "서버 통신 중 에러가 발생했습니다.");
     } finally {
       setIsGenerating(false);
     }
@@ -536,8 +540,8 @@ export default function InterviewPage() {
                       <div className="w-8 h-8 rounded-full bg-red-500"></div>
                     </div>
                     <h3 className="text-2xl font-bold text-slate-900 mb-2">생성에 실패했습니다</h3>
-                    <p className="text-slate-500 mb-6 max-w-xs">
-                      서버 지연 등의 문제로 포트폴리오 초안 생성이 완료되지 못했습니다. 다시 시도해주세요.
+                    <p className="text-slate-500 mb-6 max-w-sm text-sm">
+                      {errorMsg || "서버 지연 등의 문제로 포트폴리오 초안 생성이 완료되지 못했습니다. 다시 시도해주세요."}
                     </p>
                     <div className="flex gap-3">
                       <button onClick={restartInterview} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50">인터뷰 다시하기</button>
