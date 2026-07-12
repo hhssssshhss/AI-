@@ -503,7 +503,7 @@ export default function InterviewPage() {
                 </p>
                 <div className="flex gap-3">
                   <button onClick={restartInterview} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50">다시하기</button>
-                  <button onClick={() => router.push("/portfolio/builder")} className="px-5 py-2.5 bg-[#0055d4] text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">포트폴리오 제작하기</button>
+                  <button onClick={() => router.push("/portfolio")} className="px-5 py-2.5 bg-[#0055d4] text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">✨ 자동 완성된 포트폴리오 보러가기</button>
                 </div>
               </div>
             )}
