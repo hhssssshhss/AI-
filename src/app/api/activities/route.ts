@@ -56,6 +56,8 @@ export async function POST(req: NextRequest) {
       sizeBytes,
       accessToken,
       activityTitle,
+      activityDescription,
+      activityRole,
     } = body;
 
     if (!fileId || !accessToken) {
@@ -113,7 +115,11 @@ export async function POST(req: NextRequest) {
                 {
                   text: `이 이미지는 취업 준비생의 활동 자료입니다. 
 활동명: ${activityTitle}
-파일에 있는 내용만 기반으로 (추측 금지) JSON으로 구조화해주세요.
+사용자가 제공한 부가 정보: 
+- 간단한 설명: ${activityDescription || "없음"}
+- 맡은 역할: ${activityRole || "없음"}
+
+파일 내용과 사용자가 제공한 부가 정보를 종합하여 (추측 금지) JSON으로 구조화해주세요.
 반환 스키마: { title, summary, role, keywords[] }`,
                 },
               ],
@@ -135,10 +141,14 @@ export async function POST(req: NextRequest) {
                 {
                   text: `다음은 취업 준비생의 활동 자료입니다.
 활동명: ${activityTitle}
+사용자가 제공한 부가 정보: 
+- 간단한 설명: ${activityDescription || "없음"}
+- 맡은 역할: ${activityRole || "없음"}
+
 내용:
 ${parsed.text}
 
-파일에 있는 내용만 기반으로 (추측 금지) 활동을 JSON으로 구조화해주세요.
+파일 내용과 사용자가 제공한 부가 정보를 종합하여 (추측 금지) 활동을 JSON으로 구조화해주세요.
 반환 스키마: { title, summary, role, keywords[] }`,
                 },
               ],

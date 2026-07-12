@@ -25,6 +25,8 @@ function ActivitiesContent() {
   // Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activityTitle, setActivityTitle] = useState("");
+  const [activityDescription, setActivityDescription] = useState("");
+  const [activityRole, setActivityRole] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -225,7 +227,9 @@ function ActivitiesContent() {
           mimeType: file.type,
           sizeBytes: file.size,
           accessToken: driveAccessToken,
-          activityTitle: activityTitle
+          activityTitle: activityTitle,
+          activityDescription,
+          activityRole
         })
       });
 
@@ -635,6 +639,32 @@ function ActivitiesContent() {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    간단한 설명 (선택)
+                  </label>
+                  <textarea
+                    value={activityDescription}
+                    onChange={(e) => setActivityDescription(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                    placeholder="활동에 대한 간단한 설명을 적어주세요."
+                    rows={2}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    맡은 역할 (선택)
+                  </label>
+                  <input
+                    type="text"
+                    value={activityRole}
+                    onChange={(e) => setActivityRole(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                    placeholder="예: 프론트엔드 개발, 기획 등"
+                  />
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
@@ -712,6 +742,11 @@ function ActivitiesContent() {
                       setIsModalOpen(false);
                       setSelectedFiles([]);
                       setErrorMsg("");
+                      setActivityTitle("");
+                      setActivityDescription("");
+                      setActivityRole("");
+                      setStartDate("");
+                      setEndDate("");
                     }}
                     className="px-4 py-2.5 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition-all font-semibold"
                   >
