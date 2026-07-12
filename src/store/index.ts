@@ -52,20 +52,17 @@ export interface Interview {
   qaItems: QaItem[];
 }
 
-export interface PortfolioBlock {
+export interface PortfolioPage {
   id: string;
-  type: "title" | "intro" | "activity" | "summary";
+  activityId: string;
+  activityTitle: string;
+  period: string;
   content: string;
-  activityId?: string;
-  googleDriveFileId?: string;
 }
 
 export interface Portfolio {
   id: string;
-  targetJob: string;
-  blocks: PortfolioBlock[];
-  version: number;
-  snapshots: PortfolioBlock[][];
+  pages: PortfolioPage[];
 }
 
 export interface AnalysisReport {
@@ -168,11 +165,9 @@ export const useActivitiesStore = create<ActivitiesState>()(
 interface PortfolioState {
   portfolio: Portfolio | null;
   setPortfolio: (portfolio: Portfolio | null) => void;
-  updateBlocks: (blocks: PortfolioBlock[]) => void;
-  saveSnapshot: () => void;
-  restoreSnapshot: (index: number) => void;
-  analysisReport: AnalysisReport | null;
-  setAnalysisReport: (report: AnalysisReport) => void;
+  addPage: (page: PortfolioPage) => void;
+  updatePageContent: (pageId: string, content: string) => void;
+  deletePage: (pageId: string) => void;
 }
 
 export const usePortfolioStore = create<PortfolioState>()(
@@ -180,30 +175,48 @@ export const usePortfolioStore = create<PortfolioState>()(
     (set) => ({
       portfolio: null,
       setPortfolio: (portfolio) => set({ portfolio }),
-      updateBlocks: (blocks) =>
-        set((state) =>
-          state.portfolio
-            ? { portfolio: { ...state.portfolio, blocks } }
-            : {}
-        ),
-      saveSnapshot: () =>
+      addPage: (page) =>
+        set((state) => {
+          if (!state.portfolio) {
+            return { portfolio: { id: "port_master", pages: [page] } };
+          }
+          // If page for this activity already exists, update it. Otherwise append.
+          const existing = state.portfolio.pages.find(p => p.activityId === page.activityId);
+          if (existing) {
+            return {
+              portfolio: {
+                ...state.portfolio,
+                pages: state.portfolio.pages.map(p => p.activityId === page.activityId ? page : p)
+              }
+            };
+          }
+          return {
+            portfolio: {
+              ...state.portfolio,
+              pages: [...state.portfolio.pages, page]
+            }
+          };
+        }),
+      updatePageContent: (pageId, content) =>
         set((state) => {
           if (!state.portfolio) return {};
-          const snapshots = [
-            ...state.portfolio.snapshots,
-            [...state.portfolio.blocks],
-          ];
-          return { portfolio: { ...state.portfolio, snapshots } };
+          return {
+            portfolio: {
+              ...state.portfolio,
+              pages: state.portfolio.pages.map(p => p.id === pageId ? { ...p, content } : p)
+            }
+          };
         }),
-      restoreSnapshot: (index) =>
+      deletePage: (pageId) =>
         set((state) => {
           if (!state.portfolio) return {};
-          const snapshot = state.portfolio.snapshots[index];
-          if (!snapshot) return {};
-          return { portfolio: { ...state.portfolio, blocks: [...snapshot] } };
-        }),
-      analysisReport: null,
-      setAnalysisReport: (report) => set({ analysisReport: report }),
+          return {
+            portfolio: {
+              ...state.portfolio,
+              pages: state.portfolio.pages.filter(p => p.id !== pageId)
+            }
+          };
+        })
     }),
     { name: "careerfolio-portfolio-storage" }
   )

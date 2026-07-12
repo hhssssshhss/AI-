@@ -316,6 +316,35 @@ export default function InterviewPage() {
         qaItems
       }
     });
+
+    // 🚀 인터뷰 완료 즉시 포트폴리오 텍스트 자동 생성 트리거
+    try {
+      if (activity) {
+        const res = await fetch("/api/portfolio/auto-generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            activityTitle: activity.title,
+            qaItems
+          })
+        });
+
+        if (res.ok) {
+          const { content } = await res.json();
+          // usePortfolioStore()에서 addPage 호출. (Dynamic import로 직접 접근은 어려우니 zustand 스토어를 import 하여 사용합니다)
+          const { usePortfolioStore } = await import("@/store");
+          usePortfolioStore.getState().addPage({
+            id: `page_${Date.now()}`,
+            activityId: id,
+            activityTitle: activity.title,
+            period: activity.periodStart ? `${new Date(activity.periodStart).toLocaleDateString()} ~ ${activity.periodEnd ? new Date(activity.periodEnd).toLocaleDateString() : '진행중'}` : '진행 기간 없음',
+            content
+          });
+        }
+      }
+    } catch (err) {
+      console.error("포트폴리오 자동 생성 실패:", err);
+    }
   };
 
   const restartInterview = () => {

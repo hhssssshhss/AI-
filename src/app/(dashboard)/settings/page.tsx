@@ -43,9 +43,12 @@ export default function SettingsPage() {
   const handleClearAllData = () => {
     if (confirm("⚠️ 경고: 전체 데이터를 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 등록된 모든 활동 카드, 인터뷰 내역, 포트폴리오 에디터 내용이 즉시 영구 삭제됩니다.")) {
       
-      // Zustand 모든 상태 강제 초기화
+      // Delete all store data locally
+      useActivitiesStore.persist.clearStorage();
+      usePortfolioStore.persist.clearStorage();
+      // Reinitialize state to empty/default if needed
       useActivitiesStore.setState({ activities: [] });
-      usePortfolioStore.setState({ portfolio: null, analysisReport: null });
+      usePortfolioStore.setState({ portfolio: null });
       
       setResetSuccess(true);
       setTimeout(() => {
