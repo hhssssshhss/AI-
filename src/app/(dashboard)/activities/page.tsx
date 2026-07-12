@@ -27,6 +27,7 @@ function ActivitiesContent() {
   const [activityTitle, setActivityTitle] = useState("");
   const [activityDescription, setActivityDescription] = useState("");
   const [activityRole, setActivityRole] = useState("");
+  const [activityKeywords, setActivityKeywords] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -34,11 +35,7 @@ function ActivitiesContent() {
   const [uploadProgress, setUploadProgress] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Manual input state (Fallback)
-  const [manualInputActivityId, setManualInputActivityId] = useState<string | null>(null);
-  const [manualSummary, setManualSummary] = useState("");
-  const [manualRole, setManualRole] = useState("");
-  const [manualKeywords, setManualKeywords] = useState("");
+
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -212,40 +209,20 @@ function ActivitiesContent() {
     setIsModalOpen(false);
 
     try {
-      // 1단계: 첫 번째 파일 업로드 (PRD v5: 다중 업로드 명세이나 분석은 1개 또는 1차 연동 대상 기준)
+      // 1단계: 파일 업로드
       const file = selectedFiles[0];
       const googleDriveFileId = await uploadToGoogleDrive(file, driveAccessToken);
 
-      // 2단계: 백엔드 API에 fileId 전송하여 Gemini 구조화
-      setUploadProgress("AI가 문서를 파싱하고 구조화하고 있습니다...");
-      const res = await fetch("/api/activities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileId: googleDriveFileId,
-          fileName: file.name,
-          mimeType: file.type,
-          sizeBytes: file.size,
-          accessToken: driveAccessToken,
-          activityTitle: activityTitle,
-          activityDescription,
-          activityRole
-        })
-      });
+      // 2단계: 유저가 입력한 정보를 바탕으로 즉시 활동 데이터 저장 (AI 파싱 생략)
+      setUploadProgress("활동을 저장하고 있습니다...");
+      const keywordsArray = activityKeywords.split(",").map(k => k.trim()).filter(Boolean);
 
-      if (!res.ok) {
-        throw new Error("AI 파싱 실패");
-      }
-
-      const { activity: resultActivity } = await res.json();
-      
-      // DB에 최종 활동 데이터 저장
       if (userId) {
         const dbActivity = await createActivity(userId, {
           title: activityTitle,
-          summary: resultActivity.summary,
-          role: resultActivity.role,
-          keywords: resultActivity.keywords,
+          summary: activityDescription || "설명 없음",
+          role: activityRole || "역할 없음",
+          keywords: keywordsArray,
           periodStart: startDate,
           periodEnd: endDate,
           files: [{
@@ -264,16 +241,17 @@ function ActivitiesContent() {
           role: dbActivity.role ?? undefined,
           periodStart: dbActivity.periodStart ? new Date(dbActivity.periodStart).toISOString().split('T')[0] : undefined,
           periodEnd: dbActivity.periodEnd ? new Date(dbActivity.periodEnd).toISOString().split('T')[0] : undefined,
+          status: "READY"
         } as unknown as Activity);
       } else {
-        // DB 연결이 없는(수동 로그인 등) 로컬 프로토타입 환경일 경우 직접 상태 업데이트
+        // 로컬 환경용
         removeActivity(tempId);
         addActivity({
           id: `act_${Math.random().toString(36).substring(2, 11)}`,
           title: activityTitle,
-          summary: resultActivity.summary,
-          role: resultActivity.role,
-          keywords: resultActivity.keywords,
+          summary: activityDescription || "설명 없음",
+          role: activityRole || "역할 없음",
+          keywords: keywordsArray,
           periodStart: startDate || undefined,
           periodEnd: endDate || undefined,
           status: "READY",
@@ -289,14 +267,10 @@ function ActivitiesContent() {
         } as unknown as Activity);
       }
 
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      // 에러 시 수동 입력 필요 상태로 변환
-      updateActivity(tempId, {
-        status: "NEEDS_MANUAL_INPUT"
-      });
-      setManualInputActivityId(tempId);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      removeActivity(tempId);
+      setErrorMsg(err.message || "활동 등록 중 오류가 발생했습니다.");
     } finally {
       setIsUploading(false);
       setUploadProgress("");
@@ -307,70 +281,6 @@ function ActivitiesContent() {
     }
   };
 
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualInputActivityId) return;
-    if (!manualSummary.trim() || !manualRole.trim()) {
-      setErrorMsg("모든 필드를 입력해 주세요.");
-      return;
-    }
-
-    const keywordList = manualKeywords
-      .split(",")
-      .map(k => k.trim())
-      .filter(k => k.length > 0);
-
-    const act = activities.find(a => a.id === manualInputActivityId);
-
-    if (userId && act) {
-      try {
-        const dbActivity = await createActivity(userId, {
-          title: act.title,
-          summary: manualSummary,
-          role: manualRole,
-          keywords: keywordList,
-          periodStart: act.periodStart,
-          periodEnd: act.periodEnd,
-          files: act.files.map(f => ({
-            googleDriveFileId: f.googleDriveFileId,
-            fileName: f.fileName,
-            mimeType: f.mimeType,
-            sizeBytes: f.sizeBytes,
-          })),
-        });
-
-        removeActivity(manualInputActivityId);
-        addActivity({
-          ...dbActivity,
-          summary: dbActivity.summary ?? undefined,
-          role: dbActivity.role ?? undefined,
-          periodStart: dbActivity.periodStart ? new Date(dbActivity.periodStart).toISOString().split('T')[0] : undefined,
-          periodEnd: dbActivity.periodEnd ? new Date(dbActivity.periodEnd).toISOString().split('T')[0] : undefined,
-        } as unknown as Activity);
-      } catch (err) {
-        console.error(err);
-        updateActivity(manualInputActivityId, {
-          summary: manualSummary,
-          role: manualRole,
-          keywords: keywordList,
-          status: "READY"
-        });
-      }
-    } else {
-      updateActivity(manualInputActivityId, {
-        summary: manualSummary,
-        role: manualRole,
-        keywords: keywordList,
-        status: "READY"
-      });
-    }
-
-    // Reset 수동 입력 상태
-    setManualInputActivityId(null);
-    setManualSummary("");
-    setManualRole("");
-    setManualKeywords("");
-  };
 
   return (
     <DashboardLayout>
@@ -438,70 +348,7 @@ function ActivitiesContent() {
           </div>
         )}
 
-        {/* Manual Input Fallback UI */}
-        {manualInputActivityId && (
-          <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-6 space-y-4">
-            <div className="flex items-center gap-2 text-amber-400">
-              <AlertTriangle className="w-5 h-5" />
-              <h3 className="font-bold text-white">AI 추출 실패 - 수동 정보 보완</h3>
-            </div>
-            <p className="text-xs text-slate-400">
-              문서 텍스트 추출에 실패했습니다. 아래 필드를 직접 채워 활동 카드를 생성하세요.
-            </p>
-            <form onSubmit={handleManualSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1">한 줄 요약</label>
-                <input
-                  type="text"
-                  value={manualSummary}
-                  onChange={e => setManualSummary(e.target.value)}
-                  className="w-full bg-slate-950 border border-white/10 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
-                  placeholder="예: AI 기반 이력서 작성 지원 서비스 개발 프로젝트 진행"
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-slate-300 font-semibold mb-1">핵심 역할</label>
-                  <input
-                    type="text"
-                    value={manualRole}
-                    onChange={e => setManualRole(e.target.value)}
-                    className="w-full bg-slate-950 border border-white/10 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
-                    placeholder="예: React 프론트엔드 설계 및 SSE 스트리밍 구현"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-300 font-semibold mb-1">키워드 태그 (쉼표 구분)</label>
-                  <input
-                    type="text"
-                    value={manualKeywords}
-                    onChange={e => setManualKeywords(e.target.value)}
-                    className="w-full bg-slate-950 border border-white/10 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
-                    placeholder="Next.js, SSE, Zustand"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    removeActivity(manualInputActivityId);
-                    setManualInputActivityId(null);
-                  }}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold"
-                >
-                  수동 카드 생성
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+
 
         {activities.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 bg-white border border-slate-200 rounded-3xl text-center shadow-sm relative overflow-hidden">
@@ -541,9 +388,6 @@ function ActivitiesContent() {
                 onClick={() => {
                   if (act.status === "READY") {
                     router.push(`/activities/${act.id}/interview`);
-                  } else if (act.status === "NEEDS_MANUAL_INPUT") {
-                    setManualInputActivityId(act.id);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
                   }
                 }}
               >
@@ -559,9 +403,6 @@ function ActivitiesContent() {
                     )}
                     {act.status === "PROCESSING" && (
                       <span className="px-2.5 py-1 bg-blue-400 text-white rounded-full text-[10px] font-bold shadow-sm">진행 중</span>
-                    )}
-                    {act.status === "NEEDS_MANUAL_INPUT" && (
-                      <span className="px-2.5 py-1 bg-amber-500 text-white rounded-full text-[10px] font-bold shadow-sm">입력 필요</span>
                     )}
                   </div>
                 </div>
@@ -589,9 +430,6 @@ function ActivitiesContent() {
                       <div className="h-3 bg-slate-100 rounded w-full animate-pulse"></div>
                       <div className="h-3 bg-slate-100 rounded w-2/3 animate-pulse"></div>
                     </div>
-                  )}
-                  {act.status === "NEEDS_MANUAL_INPUT" && (
-                    <p className="text-xs text-amber-600 mb-4 font-medium">데이터 추출 실패. 수동으로 정보를 입력해주세요.</p>
                   )}
 
                   <div className="mt-auto pt-4 flex items-center justify-between border-t border-slate-100">
@@ -662,6 +500,19 @@ function ActivitiesContent() {
                     onChange={(e) => setActivityRole(e.target.value)}
                     className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
                     placeholder="예: 프론트엔드 개발, 기획 등"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    키워드 (선택, 쉼표로 구분)
+                  </label>
+                  <input
+                    type="text"
+                    value={activityKeywords}
+                    onChange={(e) => setActivityKeywords(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                    placeholder="예: React, TypeScript, 기획, 소통"
                   />
                 </div>
 
@@ -745,6 +596,7 @@ function ActivitiesContent() {
                       setActivityTitle("");
                       setActivityDescription("");
                       setActivityRole("");
+                      setActivityKeywords("");
                       setStartDate("");
                       setEndDate("");
                     }}
