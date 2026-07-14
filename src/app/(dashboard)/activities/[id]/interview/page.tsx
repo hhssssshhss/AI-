@@ -43,6 +43,25 @@ export default function InterviewPage() {
     setIsMounted(true);
   }, []);
 
+  // 동적 타이머 상태 및 로직
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    if (isFinished || !isMounted) return;
+    
+    const interval = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [isFinished, isMounted]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const s = (seconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
   // 음성 인식 관련
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -381,6 +400,7 @@ export default function InterviewPage() {
     setCurrentCategory("PROBLEM");
     setQuestionCount(0);
     setIsFinished(false);
+    setElapsedSeconds(0); // 타이머 초기화
     updateActivity(id, { interview: null });
     // 잠시 후 첫 질문 로드
     setTimeout(() => {
@@ -414,7 +434,7 @@ export default function InterviewPage() {
             <div className="bg-white border border-slate-200 rounded-xl p-4 flex justify-between items-center shadow-sm">
               <div>
                 <p className="text-xs text-slate-500 font-medium mb-1">진행 시간</p>
-                <h3 className="font-bold text-slate-800 text-base">15:00 / 30:00</h3>
+                <h3 className="font-bold text-slate-800 text-base">{formatTime(elapsedSeconds)} / 30:00</h3>
               </div>
               <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
                 <RefreshCw className="w-5 h-5 text-blue-500" />
