@@ -122,25 +122,6 @@ export default function PortfolioPage() {
         )}
       </div>
       
-      <style dangerouslySetInnerHTML={{__html: `
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .max-w-4xl, .max-w-4xl * {
-            visibility: visible;
-          }
-          .max-w-4xl {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .print\\:hidden {
-            display: none !important;
-          }
-        }
-      `}} />
     </DashboardLayout>
   );
 }
