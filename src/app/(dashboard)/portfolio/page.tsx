@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePortfolioStore } from "@/store";
+import { usePortfolioStore, useAuthStore } from "@/store";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Sparkles, Edit2, Check, Download, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 export default function PortfolioPage() {
-  const { portfolio, updatePageContent, deletePage } = usePortfolioStore();
+  const { portfoliosByUser, updatePageContent, deletePage } = usePortfolioStore();
+  const { userId, birthYear } = useAuthStore();
+  const userKey = `${userId}_${birthYear || 'unknown'}`;
+  const portfolio = portfoliosByUser[userKey] || null;
+
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState<string>("");
 
@@ -23,7 +27,7 @@ export default function PortfolioPage() {
   };
 
   const handleSaveEdit = (pageId: string) => {
-    updatePageContent(pageId, editContent);
+    updatePageContent(userKey, pageId, editContent);
     setEditingPageId(null);
   };
 
@@ -94,7 +98,7 @@ export default function PortfolioPage() {
                     <button 
                       onClick={() => {
                         if (confirm("이 포트폴리오 페이지를 삭제하시겠습니까?")) {
-                          deletePage(page.id);
+                          deletePage(userKey, page.id);
                         }
                       }}
                       className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

@@ -18,9 +18,12 @@ export default function SettingsPage() {
   const router = useRouter();
   
   // Zustand Stores
-  const { driveLinked } = useAuthStore();
+  const { driveLinked, userId, birthYear } = useAuthStore();
   const { activities } = useActivitiesStore();
-  const { portfolio } = usePortfolioStore();
+  const { portfoliosByUser } = usePortfolioStore();
+
+  const userKey = `${userId}_${birthYear || 'unknown'}`;
+  const portfolio = portfoliosByUser[userKey] || null;
 
   const [resetSuccess, setResetSuccess] = useState(false);
 
@@ -48,7 +51,7 @@ export default function SettingsPage() {
       usePortfolioStore.persist.clearStorage();
       // Reinitialize state to empty/default if needed
       useActivitiesStore.setState({ activities: [] });
-      usePortfolioStore.setState({ portfolio: null });
+      usePortfolioStore.setState({ portfoliosByUser: {} });
       
       setResetSuccess(true);
       setTimeout(() => {

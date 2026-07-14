@@ -163,60 +163,77 @@ export const useActivitiesStore = create<ActivitiesState>()(
 // ──────────────────────────────────────────────────────
 
 interface PortfolioState {
-  portfolio: Portfolio | null;
-  setPortfolio: (portfolio: Portfolio | null) => void;
-  addPage: (page: PortfolioPage) => void;
-  updatePageContent: (pageId: string, content: string) => void;
-  deletePage: (pageId: string) => void;
+  portfoliosByUser: Record<string, Portfolio>;
+  setPortfolio: (userKey: string, portfolio: Portfolio | null) => void;
+  addPage: (userKey: string, page: PortfolioPage) => void;
+  updatePageContent: (userKey: string, pageId: string, content: string) => void;
+  deletePage: (userKey: string, pageId: string) => void;
 }
 
 export const usePortfolioStore = create<PortfolioState>()(
   persist(
     (set) => ({
-      portfolio: null,
-      setPortfolio: (portfolio) => set({ portfolio }),
-      addPage: (page) =>
+      portfoliosByUser: {},
+      setPortfolio: (userKey, portfolio) => 
         set((state) => {
-          if (!state.portfolio) {
-            return { portfolio: { id: "port_master", pages: [page] } };
+          if (!portfolio) {
+            const newDict = { ...state.portfoliosByUser };
+            delete newDict[userKey];
+            return { portfoliosByUser: newDict };
           }
-          const pages = state.portfolio.pages || [];
-          // If page for this activity already exists, update it. Otherwise append.
+          return {
+            portfoliosByUser: { ...state.portfoliosByUser, [userKey]: portfolio }
+          };
+        }),
+      addPage: (userKey, page) =>
+        set((state) => {
+          const userPortfolio = state.portfoliosByUser[userKey] || { id: `port_${userKey}`, pages: [] };
+          const pages = userPortfolio.pages || [];
           const existing = pages.find(p => p.activityId === page.activityId);
+          
+          let newPages;
           if (existing) {
-            return {
-              portfolio: {
-                ...state.portfolio,
-                pages: pages.map(p => p.activityId === page.activityId ? page : p)
-              }
-            };
+            newPages = pages.map(p => p.activityId === page.activityId ? page : p);
+          } else {
+            newPages = [...pages, page];
           }
+
           return {
-            portfolio: {
-              ...state.portfolio,
-              pages: [...pages, page]
+            portfoliosByUser: {
+              ...state.portfoliosByUser,
+              [userKey]: { ...userPortfolio, pages: newPages }
             }
           };
         }),
-      updatePageContent: (pageId, content) =>
+      updatePageContent: (userKey, pageId, content) =>
         set((state) => {
-          if (!state.portfolio) return {};
-          const pages = state.portfolio.pages || [];
+          const userPortfolio = state.portfoliosByUser[userKey];
+          if (!userPortfolio) return {};
+          
+          const pages = userPortfolio.pages || [];
           return {
-            portfolio: {
-              ...state.portfolio,
-              pages: pages.map(p => p.id === pageId ? { ...p, content } : p)
+            portfoliosByUser: {
+              ...state.portfoliosByUser,
+              [userKey]: {
+                ...userPortfolio,
+                pages: pages.map(p => p.id === pageId ? { ...p, content } : p)
+              }
             }
           };
         }),
-      deletePage: (pageId) =>
+      deletePage: (userKey, pageId) =>
         set((state) => {
-          if (!state.portfolio) return {};
-          const pages = state.portfolio.pages || [];
+          const userPortfolio = state.portfoliosByUser[userKey];
+          if (!userPortfolio) return {};
+          
+          const pages = userPortfolio.pages || [];
           return {
-            portfolio: {
-              ...state.portfolio,
-              pages: pages.filter(p => p.id !== pageId)
+            portfoliosByUser: {
+              ...state.portfoliosByUser,
+              [userKey]: {
+                ...userPortfolio,
+                pages: pages.filter(p => p.id !== pageId)
+              }
             }
           };
         })

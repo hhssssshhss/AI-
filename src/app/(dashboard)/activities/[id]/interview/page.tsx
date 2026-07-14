@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useActivitiesStore, usePortfolioStore, QaItem } from "@/store";
+import { useActivitiesStore, usePortfolioStore, useAuthStore, QaItem } from "@/store";
 import DashboardLayout from "@/components/DashboardLayout";
 import { 
   Send, 
@@ -20,7 +20,11 @@ export default function InterviewPage() {
   const router = useRouter();
   const { id } = useParams() as { id: string };
   const { getActivity, updateActivity } = useActivitiesStore();
-  const { portfolio, addPage } = usePortfolioStore();
+  const { portfoliosByUser, addPage } = usePortfolioStore();
+  const { userId, birthYear } = useAuthStore();
+  
+  const userKey = `${userId}_${birthYear || 'unknown'}`;
+  const portfolio = portfoliosByUser[userKey] || null;
 
   const activity = getActivity(id);
   const hasPortfolioPage = portfolio?.pages?.some(p => p.activityId === id) || false;
@@ -321,7 +325,7 @@ export default function InterviewPage() {
 
       if (res.ok) {
         const { content } = await res.json();
-        addPage({
+        addPage(userKey, {
           id: `page_${Date.now()}`,
           activityId: id,
           activityTitle: activity.title,
