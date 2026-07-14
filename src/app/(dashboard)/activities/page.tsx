@@ -55,6 +55,13 @@ function ActivitiesContent() {
     }
   }, [searchParams, setDriveLinked]);
 
+  // 안전한 날짜 포맷팅 헬퍼 함수 정의
+  const safeFormatDate = (dateVal: any) => {
+    if (!dateVal) return undefined;
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? undefined : d.toISOString().split('T')[0];
+  };
+
   // DB에서 유저 활동 불러오기 (Zustand 로컬 스토리지와 최신 상태 동기화)
   useEffect(() => {
     if (userId) {
@@ -63,8 +70,8 @@ function ActivitiesContent() {
           ...d,
           summary: d.summary ?? undefined,
           role: d.role ?? undefined,
-          periodStart: d.periodStart ? new Date(d.periodStart).toISOString().split('T')[0] : undefined,
-          periodEnd: d.periodEnd ? new Date(d.periodEnd).toISOString().split('T')[0] : undefined,
+          periodStart: safeFormatDate(d.periodStart),
+          periodEnd: safeFormatDate(d.periodEnd),
         })) as unknown as Activity[];
         
         // 서버에서 가져온 최신 데이터를 상태에 덮어씌움 (인터뷰 데이터도 이제 서버에 저장됨)
@@ -111,11 +118,11 @@ function ActivitiesContent() {
       if (!id.startsWith("act_") && !id.startsWith("temp_")) {
         await deleteActivityAction(id);
       }
+      // DB 삭제 성공 시에만 로컬 상태 삭제 처리
+      removeActivity(id);
     } catch (err) {
       console.error("DB 삭제 실패 (로컬 전용 데이터일 수 있음)", err);
-    } finally {
-      // 에러 발생 여부와 상관없이 로컬 UI(Zustand)에서는 무조건 삭제
-      removeActivity(id);
+      alert("삭제에 실패했습니다. 잠시 후 다시 시도해주세요.");
     }
   };
 
@@ -214,9 +221,19 @@ function ActivitiesContent() {
     setIsModalOpen(false);
 
     try {
-      // 1단계: 파일 업로드
-      const file = selectedFiles[0];
-      const googleDriveFileId = await uploadToGoogleDrive(file, driveAccessToken);
+      // 1단계: selectedFiles 내의 모든 파일을 병렬 업로드
+      setUploadProgress("파일들을 구글 드라이브에 업로드 중...");
+      const uploadedFiles = await Promise.all(
+        selectedFiles.map(async (file) => {
+          const googleDriveFileId = await uploadToGoogleDrive(file, driveAccessToken);
+          return {
+            googleDriveFileId,
+            fileName: file.name,
+            mimeType: file.type,
+            sizeBytes: file.size
+          };
+        })
+      );
 
       // 2단계: 유저가 입력한 정보를 바탕으로 즉시 활동 데이터 저장 (AI 파싱 생략)
       setUploadProgress("활동을 저장하고 있습니다...");
@@ -230,12 +247,7 @@ function ActivitiesContent() {
           keywords: keywordsArray,
           periodStart: startDate,
           periodEnd: endDate,
-          files: [{
-            googleDriveFileId,
-            fileName: file.name,
-            mimeType: file.type,
-            sizeBytes: file.size
-          }]
+          files: uploadedFiles
         });
 
         // Zustand 스토어 업데이트 (임시 항목 교체)
@@ -244,8 +256,8 @@ function ActivitiesContent() {
           ...dbActivity,
           summary: dbActivity.summary ?? undefined,
           role: dbActivity.role ?? undefined,
-          periodStart: dbActivity.periodStart ? new Date(dbActivity.periodStart).toISOString().split('T')[0] : undefined,
-          periodEnd: dbActivity.periodEnd ? new Date(dbActivity.periodEnd).toISOString().split('T')[0] : undefined,
+          periodStart: safeFormatDate(dbActivity.periodStart),
+          periodEnd: safeFormatDate(dbActivity.periodEnd),
           status: "READY"
         } as unknown as Activity);
       } else {
@@ -260,14 +272,11 @@ function ActivitiesContent() {
           periodStart: startDate || undefined,
           periodEnd: endDate || undefined,
           status: "READY",
-          files: [{
+          files: uploadedFiles.map(f => ({
             id: `file_${Math.random().toString(36).substring(2, 11)}`,
-            googleDriveFileId: googleDriveFileId,
-            fileName: file.name,
-            mimeType: file.type,
-            sizeBytes: file.size,
+            ...f,
             parseStatus: "DONE"
-          }],
+          })),
           interview: null
         } as unknown as Activity);
       }

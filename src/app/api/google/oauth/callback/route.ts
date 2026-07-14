@@ -33,12 +33,18 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // access_token을 URL 파라미터로 전달 — 클라이언트에서 Zustand 스토어에 저장
+    // access_token을 URL 파라미터 대신 httpOnly 보안 쿠키로 설정
     const redirectUrl = new URL("/activities", req.url);
-    redirectUrl.searchParams.set("driveToken", accessToken);
-    redirectUrl.searchParams.set("driveTokenExpiry", String(expiresIn));
+    const response = NextResponse.redirect(redirectUrl);
 
-    return NextResponse.redirect(redirectUrl);
+    response.cookies.set("driveToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 3600,
+      path: "/",
+    });
+
+    return response;
   } catch (err) {
     console.error("[OAuth callback] Error:", err);
     return NextResponse.redirect(

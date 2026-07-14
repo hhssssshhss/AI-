@@ -139,6 +139,11 @@ export default function InterviewPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamedText, isAiTyping]);
 
+  // AI 생성 관련 상태 훅들 (조기 리턴문 위로 끌어올림)
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
   if (!activity) return null;
 
   // AI 스트리밍 질문 요청 공통 함수
@@ -276,11 +281,6 @@ export default function InterviewPage() {
 
     await fetchAiQuestion(userText, history, nextCategory);
   };
-
-
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationError, setGenerationError] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
 
   const generatePortfolio = async (qaItems: QaItem[]) => {
     if (!activity) return;
