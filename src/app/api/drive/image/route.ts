@@ -22,11 +22,8 @@ export async function GET(req: NextRequest) {
   try {
     const stream = await getFileStream(fileId, accessToken);
     
-    // Node.js Stream을 Web 스탠다드 ReadableStream으로 변환
-    const { Readable } = require("stream");
-    const webStream = Readable.toWeb(stream as any);
-    
-    return new NextResponse(webStream, {
+    // 스트림을 응답으로 바로 파이핑 (Content-Type은 구글이 주는 미디어 타입 또는 일반 이미지 포맷으로 추정)
+    return new NextResponse(stream as any, {
       headers: {
         "Content-Type": "image/jpeg", // 필요 시 원본 파일 mimeType을 조회하여 설정 가능
         "Cache-Control": "public, max-age=86400", // 하루 동안 캐시
