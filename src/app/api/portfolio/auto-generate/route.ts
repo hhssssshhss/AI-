@@ -4,7 +4,7 @@ import { getGeminiModel } from "@/lib/gemini";
 export const runtime = "nodejs";
 export const maxDuration = 60; // 60 seconds (Hobby plan maximum for App Router APIs)
 
-const PORTFOLIO_PROMPT = \`사용자의 활동 기록과 인터뷰 내용을 분석하여, 실무 포트폴리오에 즉시 삽입할 수 있는 객관적이고 전문적인 성과 중심 텍스트로 변환하세요.
+const PORTFOLIO_PROMPT = `사용자의 활동 기록과 인터뷰 내용을 분석하여, 실무 포트폴리오에 즉시 삽입할 수 있는 객관적이고 전문적인 성과 중심 텍스트로 변환하세요.
 
 [절대 금지 사항]
 * "제공해주신 내용을 바탕으로~", "다음은 정리한 내용입니다" 같은 AI의 인사말이나 부연 설명을 절대 출력하지 마세요. 오직 결과물만 출력하세요.
@@ -26,7 +26,7 @@ const PORTFOLIO_PROMPT = \`사용자의 활동 기록과 인터뷰 내용을 분
 * (핵심 키워드): (상세 수행 내용 및 정량적 성과)
 
 ### 문제 해결 및 기술적 성과
-* (적용한 방식이나 기술을 명사형으로 간결하게 서술)\`;
+* (적용한 방식이나 기술을 명사형으로 간결하게 서술)`;
 
 export async function POST(req: NextRequest) {
   try {
