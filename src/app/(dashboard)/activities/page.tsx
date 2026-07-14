@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuthStore, useActivitiesStore, Activity } from "@/store";
+import { useAuthStore, useActivitiesStore, usePortfolioStore, Activity } from "@/store";
 import DashboardLayout from "@/components/DashboardLayout";
 import { 
   CloudLightning, 
@@ -116,6 +116,16 @@ function ActivitiesContent() {
     } finally {
       // 에러 발생 여부와 상관없이 로컬 UI(Zustand)에서는 무조건 삭제
       removeActivity(id);
+
+      // 활동이 삭제되면 연관된 포트폴리오 페이지도 함께 삭제
+      const currentUserId = useAuthStore.getState().userId;
+      const currentBirthYear = useAuthStore.getState().birthYear;
+      const userKey = `${currentUserId}_${currentBirthYear || 'unknown'}`;
+      const currentPortfolio = usePortfolioStore.getState().portfoliosByUser[userKey];
+      const pageToDelete = currentPortfolio?.pages?.find(p => p.activityId === id);
+      if (pageToDelete) {
+        usePortfolioStore.getState().deletePage(userKey, pageToDelete.id);
+      }
     }
   };
 
